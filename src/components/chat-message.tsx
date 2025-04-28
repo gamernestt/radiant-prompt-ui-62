@@ -54,7 +54,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 return match ? (
                   <SyntaxHighlighter
                     language={match[1]}
-                    style={atomDark}
+                    style={atomDark as any}
                     PreTag="div"
                     {...props}
                   >
