@@ -49,14 +49,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
           
           <ReactMarkdown
             components={{
-              code({ node, className, children, ...props }) {
+              code({ className, children, ...props }) {
+                // Remove all props that are causing type issues
+                // Only pass safe props to SyntaxHighlighter
                 const match = /language-(\w+)/.exec(className || '');
+                
                 return match ? (
                   <SyntaxHighlighter
                     language={match[1]}
                     style={atomDark as any}
                     PreTag="div"
-                    {...props}
                   >
                     {String(children).replace(/\n$/, '')}
                   </SyntaxHighlighter>
@@ -66,7 +68,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   </code>
                 );
               },
-              a({ node, children, ...props }) {
+              a({ children, ...props }) {
                 return (
                   <a className="text-primary underline" target="_blank" rel="noopener noreferrer" {...props}>
                     {children}
