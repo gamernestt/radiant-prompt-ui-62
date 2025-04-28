@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { Settings, Plus, MessageSquare, Menu, X, Zap, LogOut, Trash2 } from "lucide-react";
+import { Settings, Plus, MessageSquare, Menu, X, Zap, LogOut, Trash2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useChat } from "@/contexts/chat-context";
@@ -39,10 +39,11 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
     deleteChat, 
     setApiKey, 
     getApiKey,
+    getAllApiKeys,
     availableModels
   } = useChat();
   const isMobile = useIsMobile();
-  const [apiKeyValue, setApiKeyValue] = useState("");
+  const [apiKeyValues, setApiKeyValues] = useState<Record<string, string>>({});
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
@@ -63,7 +64,7 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
     return acc;
   }, {} as Record<string, typeof availableModels>);
   
-  // Get unique provider names
+  // Get unique provider names for the API keys tabs
   const providerNames = Object.keys(modelsByProvider);
   
   useEffect(() => {
@@ -88,16 +89,17 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
       }
     );
     
-    setApiKeyValue(getApiKey());
+    // Load existing API keys
+    const initialApiKeys = getAllApiKeys ? getAllApiKeys() : { openrouter: getApiKey() };
+    setApiKeyValues(initialApiKeys);
     
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [getApiKey, navigate]);
+  }, [getApiKey, getAllApiKeys, navigate]);
 
-  const handleSaveApiKey = () => {
-    setApiKey(apiKeyValue);
-    setIsSettingsOpen(false);
+  const handleSaveApiKey = (provider: string) => {
+    setApiKey(apiKeyValues[provider] || '', provider);
   };
 
   const handleChatClick = (chatId: string) => {
@@ -127,6 +129,24 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
     await supabase.auth.signOut();
     localStorage.removeItem("sparky_user");
     navigate("/auth");
+  };
+
+  // Helper function to get provider display name with proper capitalization
+  const getProviderDisplayName = (provider: string): string => {
+    switch (provider.toLowerCase()) {
+      case 'openai':
+        return 'OpenAI';
+      case 'anthropic':
+        return 'Anthropic/Claude';
+      case 'google':
+        return 'Google/Gemini';
+      case 'meta':
+        return 'Meta/Llama';
+      case 'deepseek':
+        return 'Deepseek';
+      default:
+        return provider.charAt(0).toUpperCase() + provider.slice(1);
+    }
   };
 
   return (
@@ -215,36 +235,74 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
                     <DialogTitle>AI Models Settings</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-2">
-                    <Tabs defaultValue="openrouter" value={activeTab} onValueChange={setActiveTab}>
+                    <Tabs defaultValue="apikeys" value={activeTab} onValueChange={setActiveTab}>
                       <TabsList className="grid grid-cols-2 mb-4">
-                        <TabsTrigger value="openrouter">OpenRouter</TabsTrigger>
+                        <TabsTrigger value="apikeys">API Keys</TabsTrigger>
                         <TabsTrigger value="models">Available Models</TabsTrigger>
                       </TabsList>
                       
-                      <TabsContent value="openrouter" className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="api-key">OpenRouter API Key</Label>
-                          <Input
-                            id="api-key"
-                            type="password"
-                            placeholder="or_api_..."
-                            value={apiKeyValue}
-                            onChange={(e) => setApiKeyValue(e.target.value)}
-                          />
-                          <p className="text-sm text-muted-foreground">
-                            Get your API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline">openrouter.ai</a>
-                          </p>
-                        </div>
-                        <Button onClick={handleSaveApiKey} className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90">
-                          Save API Key
-                        </Button>
+                      <TabsContent value="apikeys" className="space-y-4">
+                        <Tabs defaultValue="openrouter" className="w-full">
+                          <TabsList className="w-full flex flex-wrap">
+                            {providerNames.map((provider) => (
+                              <TabsTrigger key={provider} value={provider} className="flex-1 min-w-24">
+                                {getProviderDisplayName(provider)}
+                              </TabsTrigger>
+                            ))}
+                          </TabsList>
+
+                          {providerNames.map((provider) => (
+                            <TabsContent key={provider} value={provider} className="space-y-4 mt-2">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <KeyRound className="h-4 w-4" />
+                                  <Label htmlFor={`${provider}-api-key`}>{getProviderDisplayName(provider)} API Key</Label>
+                                </div>
+                                <Input
+                                  id={`${provider}-api-key`}
+                                  type="password"
+                                  placeholder={`Enter ${getProviderDisplayName(provider)} API key...`}
+                                  value={apiKeyValues[provider] || ''}
+                                  onChange={(e) => setApiKeyValues({...apiKeyValues, [provider]: e.target.value})}
+                                />
+                                <p className="text-sm text-muted-foreground">
+                                  {provider === 'openai' && (
+                                    <>Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline">OpenAI</a></>
+                                  )}
+                                  {provider === 'anthropic' && (
+                                    <>Get your API key from <a href="https://console.anthropic.com/keys" target="_blank" rel="noopener noreferrer" className="underline">Anthropic</a></>
+                                  )}
+                                  {provider === 'google' && (
+                                    <>Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a></>
+                                  )}
+                                  {provider === 'meta' && (
+                                    <>Configure via <a href="https://llama.meta.com/get-started" target="_blank" rel="noopener noreferrer" className="underline">Meta Llama</a></>
+                                  )}
+                                  {provider === 'deepseek' && (
+                                    <>Get your API key from <a href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer" className="underline">Deepseek</a></>
+                                  )}
+                                  {provider === 'openrouter' && (
+                                    <>Get your API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline">OpenRouter</a></>
+                                  )}
+                                </p>
+                                <Button 
+                                  onClick={() => handleSaveApiKey(provider)} 
+                                  className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90"
+                                  disabled={!apiKeyValues[provider]?.trim()}
+                                >
+                                  Save {getProviderDisplayName(provider)} API Key
+                                </Button>
+                              </div>
+                            </TabsContent>
+                          ))}
+                        </Tabs>
                       </TabsContent>
                       
                       <TabsContent value="models">
                         <div className="space-y-4">
                           {providerNames.map((provider) => (
                             <div key={provider} className="space-y-2">
-                              <h3 className="text-lg font-medium capitalize">{provider}</h3>
+                              <h3 className="text-lg font-medium capitalize">{getProviderDisplayName(provider)}</h3>
                               <ul className="space-y-2">
                                 {modelsByProvider[provider].map((model) => (
                                   <li key={model.id} className="p-2 bg-secondary/30 rounded-md">

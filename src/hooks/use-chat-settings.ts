@@ -8,6 +8,7 @@ export const useChatSettings = () => {
   const [availableModels] = useState<AIModels[]>(defaultModels);
   const [activeModel, setActiveModelState] = useState<AIModels>(defaultModels[0]);
   const { toast } = useToast();
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const savedModel = localStorage.getItem("activeModel");
@@ -19,23 +20,32 @@ export const useChatSettings = () => {
         console.error("Failed to parse saved model:", error);
       }
     }
+    
+    // Load API keys
+    const keys = chatService.getAllApiKeys();
+    setApiKeys(keys);
   }, []);
 
   useEffect(() => {
     localStorage.setItem("activeModel", JSON.stringify(activeModel));
   }, [activeModel]);
 
-  const setApiKey = (key: string) => {
-    chatService.setApiKey(key);
-    localStorage.setItem("openrouter_api_key", key);
+  const setApiKey = (key: string, provider: string = 'openrouter') => {
+    chatService.setApiKey(key, provider);
+    setApiKeys(chatService.getAllApiKeys());
+    
     toast({
-      title: "API Key Updated",
-      description: "Your OpenRouter API key has been saved.",
+      title: `${provider.charAt(0).toUpperCase() + provider.slice(1)} API Key Updated`,
+      description: `Your ${provider} API key has been saved.`,
     });
   };
 
-  const getApiKey = () => {
-    return chatService.getApiKey();
+  const getApiKey = (provider: string = 'openrouter') => {
+    return chatService.getApiKey(provider);
+  };
+
+  const getAllApiKeys = () => {
+    return apiKeys;
   };
 
   const setActiveModel = (model: AIModels) => {
@@ -47,6 +57,7 @@ export const useChatSettings = () => {
     availableModels,
     setActiveModel,
     setApiKey,
-    getApiKey
+    getApiKey,
+    getAllApiKeys
   };
 };
