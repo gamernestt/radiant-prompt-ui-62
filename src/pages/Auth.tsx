@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GradientText } from "@/components/gradient-text";
-import { Zap, Mail, Lock, User, MessageSquare, Shield } from "lucide-react"; 
+import { Zap, Mail, Lock, User, Shield } from "lucide-react"; 
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +16,6 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isDiscordLoading, setIsDiscordLoading] = useState(false);
   const [isAdminCreation, setIsAdminCreation] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -35,33 +35,6 @@ const Auth = () => {
     
     checkAuth();
   }, [navigate]);
-  
-  const handleDiscordLogin = async () => {
-    try {
-      setIsDiscordLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'discord',
-        options: {
-          redirectTo: `${window.location.origin}/`
-        }
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // No need to navigate here as the OAuth flow will handle the redirect
-    } catch (error) {
-      console.error("Discord auth error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Discord authentication failed",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDiscordLoading(false);
-    }
-  };
   
   const createAdminUser = async () => {
     setIsLoading(true);
@@ -375,26 +348,6 @@ const Auth = () => {
                 ) : (
                   "Create account"
                 )}
-              </Button>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-muted" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                </div>
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full flex items-center gap-2"
-                onClick={handleDiscordLogin}
-                disabled={isDiscordLoading}
-              >
-                <MessageSquare className="h-5 w-5 text-indigo-600" /> {/* Changed from Discord to MessageSquare */}
-                {isDiscordLoading ? "Connecting..." : "Sign in with Discord"}
               </Button>
               
               <div className="flex justify-between items-center mt-4 text-center">
