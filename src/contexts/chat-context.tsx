@@ -17,6 +17,9 @@ interface ChatContextProps {
   setApiKey: (key: string, provider?: string) => void;
   getApiKey: (provider?: string) => string;
   getAllApiKeys: () => Record<string, string>;
+  setBaseUrl: (url: string, provider?: string) => void;
+  getBaseUrl: (provider?: string) => string;
+  getAllBaseUrls: () => Record<string, string>;
   setActiveModel: (model: AIModels) => void;
   availableModels: AIModels[];
 }
@@ -41,7 +44,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setActiveModel,
     setApiKey,
     getApiKey,
-    getAllApiKeys
+    getAllApiKeys,
+    setBaseUrl,
+    getBaseUrl,
+    getAllBaseUrls
   } = useChatSettings();
 
   const contextValue: ChatContextProps = {
@@ -57,6 +63,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setApiKey,
     getApiKey,
     getAllApiKeys,
+    setBaseUrl,
+    getBaseUrl,
+    getAllBaseUrls,
     setActiveModel,
     availableModels
   };
