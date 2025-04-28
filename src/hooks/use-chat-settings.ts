@@ -5,7 +5,7 @@ import { AIModels, defaultModels } from "@/types/chat";
 import { useToast } from "@/hooks/use-toast";
 
 export const useChatSettings = () => {
-  const [availableModels] = useState<AIModels[]>(defaultModels);
+  const [availableModels, setAvailableModels] = useState<AIModels[]>(defaultModels);
   const [activeModel, setActiveModelState] = useState<AIModels>(defaultModels[0]);
   const { toast } = useToast();
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
@@ -29,11 +29,26 @@ export const useChatSettings = () => {
     // Load base URLs
     const urls = chatService.getAllBaseUrls();
     setBaseUrls(urls);
+
+    // Load custom models list
+    const savedModels = localStorage.getItem("availableModels");
+    if (savedModels) {
+      try {
+        const models = JSON.parse(savedModels);
+        setAvailableModels(models);
+      } catch (error) {
+        console.error("Failed to parse saved models:", error);
+      }
+    }
   }, []);
 
   useEffect(() => {
     localStorage.setItem("activeModel", JSON.stringify(activeModel));
   }, [activeModel]);
+
+  useEffect(() => {
+    localStorage.setItem("availableModels", JSON.stringify(availableModels));
+  }, [availableModels]);
 
   const setApiKey = (key: string, provider: string = 'openrouter') => {
     chatService.setApiKey(key, provider);
@@ -75,6 +90,28 @@ export const useChatSettings = () => {
     setActiveModelState(model);
   };
 
+  const removeModel = (modelId: string) => {
+    // Check if model is currently active
+    if (activeModel.id === modelId) {
+      // Set to first available model that's not being removed
+      const firstAvailableModel = availableModels.find(m => m.id !== modelId) || defaultModels[0];
+      setActiveModelState(firstAvailableModel);
+      toast({
+        title: "Active Model Changed",
+        description: `Active model was removed. Now using ${firstAvailableModel.name}.`,
+      });
+    }
+
+    // Remove the model from available models
+    const updatedModels = availableModels.filter(model => model.id !== modelId);
+    setAvailableModels(updatedModels);
+    
+    toast({
+      title: "Model Removed",
+      description: "The selected model has been removed from the available models list.",
+    });
+  };
+
   return {
     activeModel,
     availableModels,
@@ -84,6 +121,7 @@ export const useChatSettings = () => {
     getAllApiKeys,
     setBaseUrl,
     getBaseUrl,
-    getAllBaseUrls
+    getAllBaseUrls,
+    removeModel
   };
 };

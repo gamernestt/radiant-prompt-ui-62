@@ -22,6 +22,7 @@ interface ChatContextProps {
   getAllBaseUrls: () => Record<string, string>;
   setActiveModel: (model: AIModels) => void;
   availableModels: AIModels[];
+  removeModel: (modelId: string) => void;
 }
 
 const ChatContext = createContext<ChatContextProps | undefined>(undefined);
@@ -47,7 +48,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     getAllApiKeys,
     setBaseUrl,
     getBaseUrl,
-    getAllBaseUrls
+    getAllBaseUrls,
+    removeModel
   } = useChatSettings();
 
   const contextValue: ChatContextProps = {
@@ -67,7 +69,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     getBaseUrl,
     getAllBaseUrls,
     setActiveModel,
-    availableModels
+    availableModels,
+    removeModel
   };
 
   return (
