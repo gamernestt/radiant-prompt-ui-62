@@ -112,6 +112,27 @@ export const useChatSettings = () => {
     });
   };
 
+  const addModel = (model: AIModels) => {
+    // Check if model with same ID already exists
+    if (availableModels.some(m => m.id === model.id)) {
+      toast({
+        title: "Model already exists",
+        description: "A model with this ID already exists in your list.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Add the new model to available models
+    const updatedModels = [...availableModels, model];
+    setAvailableModels(updatedModels);
+    
+    toast({
+      title: "Model Added",
+      description: `${model.name} has been added to your available models.`,
+    });
+  };
+
   return {
     activeModel,
     availableModels,
@@ -122,6 +143,7 @@ export const useChatSettings = () => {
     setBaseUrl,
     getBaseUrl,
     getAllBaseUrls,
-    removeModel
+    removeModel,
+    addModel
   };
 };

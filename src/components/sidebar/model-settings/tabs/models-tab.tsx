@@ -8,6 +8,7 @@ import { useAdminCheck } from "@/hooks/use-admin-check";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { getProviderDisplayName } from "./api-keys-tab";
+import { AddModelForm } from "../add-model-form";
 
 interface ModelsTabProps {
   active: boolean;
@@ -79,9 +80,13 @@ export function ModelsTab({ active, onRemoveModel }: ModelsTabProps) {
             </ul>
           </div>
         ))}
+        
+        {/* Add the new component for adding models */}
+        <AddModelForm isAdmin={isAdmin} />
+
         {!isAdmin && (
           <div className="text-center p-4 text-sm text-muted-foreground">
-            Only administrators can remove models
+            Only administrators can manage models
           </div>
         )}
       </div>
