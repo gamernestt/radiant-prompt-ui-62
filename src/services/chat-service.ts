@@ -36,7 +36,7 @@ export class ChatService {
 
     const openRouterMessages: OpenRouterMessage[] = messages.map(message => {
       // Handle messages with images
-      if (message.images && message.images.length > 0) {
+      if (message.has_images && message.images && message.images.length > 0) {
         return {
           role: message.role,
           content: [
@@ -96,17 +96,19 @@ export class ChatService {
       id: uuidv4(),
       title: 'New Chat',
       messages: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
   }
 
   createMessage(role: Message['role'], content: string, images?: string[]): Message {
     return {
       id: uuidv4(),
+      chat_id: '', // This will be set when added to a chat
       role,
       content,
-      createdAt: new Date(),
+      created_at: new Date().toISOString(),
+      has_images: images && images.length > 0 ? true : false,
       images
     };
   }

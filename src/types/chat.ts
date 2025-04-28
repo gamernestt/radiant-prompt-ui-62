@@ -3,11 +3,12 @@ export type MessageRole = "user" | "assistant" | "system";
 
 export interface Message {
   id: string;
-  chat_id?: string;
+  chat_id: string; // Make this required since the database requires it
   role: MessageRole;
   content: string;
   created_at: string;
   has_images?: boolean;
+  images?: string[]; // Keep this for backward compatibility with chat-service.ts
 }
 
 export interface Chat {
