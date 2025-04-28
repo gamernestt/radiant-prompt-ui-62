@@ -94,6 +94,12 @@ export const defaultModels: AIModels[] = [
     description: "Latest Claude model with advanced capabilities"
   },
   {
+    id: "anthropic/claude-3.7-haiku",
+    name: "Claude 3.7 Haiku",
+    provider: "Anthropic",
+    description: "Faster version of Claude 3.7 for quick responses"
+  },
+  {
     id: "openai/gpt-4o",
     name: "GPT-4o",
     provider: "OpenAI",
@@ -104,6 +110,12 @@ export const defaultModels: AIModels[] = [
     name: "Gemini 1.5 Pro",
     provider: "Google",
     description: "Multimodal model with long context"
+  },
+  {
+    id: "google/gemini-2.5-pro-experimental",
+    name: "Gemini 2.5 Pro Experimental",
+    provider: "Google",
+    description: "Latest experimental Gemini model"
   },
   {
     id: "meta-llama/llama-4-vision-8b-it",
@@ -122,6 +134,12 @@ export const defaultModels: AIModels[] = [
     name: "Llama 4 8B",
     provider: "Meta",
     description: "New Llama 4 model with improved capabilities"
+  },
+  {
+    id: "meta-llama/llama-4-70b-it",
+    name: "Llama 4 70B",
+    provider: "Meta",
+    description: "Larger Llama 4 model with enhanced reasoning"
   },
   {
     id: "deepseek/deepseek-v2",
