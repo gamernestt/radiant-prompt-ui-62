@@ -3,18 +3,20 @@ export type MessageRole = "user" | "assistant" | "system";
 
 export interface Message {
   id: string;
+  chat_id?: string;
   role: MessageRole;
   content: string;
-  createdAt: Date;
-  images?: string[];
+  created_at: string;
+  has_images?: boolean;
 }
 
 export interface Chat {
   id: string;
   title: string;
   messages: Message[];
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: string;
+  updated_at: string;
+  user_id?: string;
 }
 
 export interface OpenRouterMessage {

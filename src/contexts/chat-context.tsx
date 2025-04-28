@@ -95,19 +95,29 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
+      // Convert database format to our app format
+      const formattedChats: Chat[] = chatsData.map(chat => ({
+        id: chat.id,
+        title: chat.title,
+        messages: [],
+        created_at: chat.created_at,
+        updated_at: chat.updated_at,
+        user_id: chat.user_id
+      }));
+      
       // Get last chat id from localStorage
       const lastChatId = localStorage.getItem("lastChatId");
       let currentChatId = lastChatId;
       
       // If no last chat id or it doesn't exist in the loaded chats, use the first chat
-      if (!lastChatId || !chatsData.find(chat => chat.id === lastChatId)) {
-        currentChatId = chatsData[0].id;
+      if (!lastChatId || !formattedChats.find(chat => chat.id === lastChatId)) {
+        currentChatId = formattedChats[0].id;
       }
       
       // Load messages for current chat
       const currentChatWithMessages = await loadChatMessages(currentChatId as string);
       
-      setChats(chatsData);
+      setChats(formattedChats);
       setCurrentChatState(currentChatWithMessages);
       
     } catch (error) {
@@ -141,10 +151,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         
       if (messagesError) throw messagesError;
       
-      return {
-        ...chatData,
-        messages: messagesData || []
+      // Create a Chat object with the loaded messages
+      const chat: Chat = {
+        id: chatData.id,
+        title: chatData.title,
+        messages: messagesData || [],
+        created_at: chatData.created_at,
+        updated_at: chatData.updated_at,
+        user_id: chatData.user_id
       };
+      
+      return chat;
       
     } catch (error) {
       console.error("Failed to load chat messages:", error);
@@ -177,8 +194,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         user_id: userId,
         title: 'New Chat',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        messages: []
+        updated_at: new Date().toISOString()
       };
       
       const { error } = await supabase
@@ -187,7 +203,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         
       if (error) throw error;
       
-      return newChat;
+      // Return a Chat object with an empty messages array
+      return {
+        ...newChat,
+        messages: []
+      };
     } catch (error) {
       console.error("Failed to create new chat:", error);
       toast({
@@ -334,15 +354,15 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Create user message
-      const userMessage = {
+      // Create user message object that matches our database schema
+      const userMessage: Message = {
         id: uuidv4(),
         chat_id: currentChat.id,
         role: "user",
         content: content,
         created_at: new Date().toISOString(),
         has_images: images && images.length > 0 ? true : false
-      } as Message;
+      };
       
       // Save user message to database
       const { error: msgError } = await supabase
@@ -395,15 +415,15 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         activeModel.id
       );
       
-      // Create assistant message
-      const assistantMessage = {
+      // Create assistant message object that matches our database schema
+      const assistantMessage: Message = {
         id: uuidv4(),
         chat_id: currentChat.id,
         role: "assistant",
         content: assistantContent,
         created_at: new Date().toISOString(),
         has_images: false
-      } as Message;
+      };
       
       // Save assistant message to database
       const { error: assistantError } = await supabase
