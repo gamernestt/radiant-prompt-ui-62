@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GradientText } from "@/components/gradient-text";
-import { Zap } from "lucide-react";
+import { Zap, Mail, Lock, User, Discord } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +16,7 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isDiscordLoading, setIsDiscordLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -28,6 +30,33 @@ const Auth = () => {
     
     checkAuth();
   }, [navigate]);
+  
+  const handleDiscordLogin = async () => {
+    try {
+      setIsDiscordLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'discord',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // No need to navigate here as the OAuth flow will handle the redirect
+    } catch (error) {
+      console.error("Discord auth error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Discord authentication failed",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDiscordLoading(false);
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,7 +156,10 @@ const Auth = () => {
               
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="username" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Username
+                  </Label>
                   <Input
                     id="username"
                     placeholder="Your username"
@@ -140,7 +172,10 @@ const Auth = () => {
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Email
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -153,7 +188,10 @@ const Auth = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  Password
+                </Label>
                 <Input
                   id="password"
                   type="password"
@@ -167,7 +205,10 @@ const Auth = () => {
               
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword" className="flex items-center gap-2">
+                    <Lock className="h-4 w-4" />
+                    Confirm Password
+                  </Label>
                   <Input
                     id="confirmPassword"
                     type="password"
@@ -197,6 +238,26 @@ const Auth = () => {
               ) : (
                 "Create account"
               )}
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-muted" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full flex items-center gap-2"
+              onClick={handleDiscordLogin}
+              disabled={isDiscordLoading}
+            >
+              <Discord className="h-5 w-5 text-indigo-600" />
+              {isDiscordLoading ? "Connecting..." : "Sign in with Discord"}
             </Button>
           </form>
           
