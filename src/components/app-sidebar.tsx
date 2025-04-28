@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { chatService } from "@/services/chat-service";
+import { useAdminCheck } from "@/hooks/use-admin-check";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -45,11 +45,13 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
   const [apiKeyValue, setApiKeyValue] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("openrouter");
+  
+  // Use the admin check hook to determine if user is admin
+  const { isAdmin, isLoading: isAdminLoading } = useAdminCheck(user?.id);
   
   // Group models by provider
   const modelsByProvider = availableModels.reduce((acc, model) => {
@@ -69,8 +71,6 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
         setUser(data.session.user);
-        // Admin is now anyone who is logged in
-        setIsAdmin(true);
       } else {
         navigate("/auth");
       }
@@ -84,8 +84,6 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
           navigate("/auth");
         } else if (session) {
           setUser(session.user);
-          // Admin is now anyone who is logged in
-          setIsAdmin(true);
         }
       }
     );
@@ -204,6 +202,7 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
         
         <div className="p-4 border-t border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-2">
+            {/* Only show settings button if user is admin */}
             {isAdmin && (
               <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                 <DialogTrigger asChild>

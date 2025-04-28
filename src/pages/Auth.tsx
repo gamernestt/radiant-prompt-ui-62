@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GradientText } from "@/components/gradient-text";
-import { Zap, Mail, Lock, User } from "lucide-react"; 
+import { Zap, Mail, Lock } from "lucide-react"; 
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,6 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -69,8 +68,7 @@ const Auth = () => {
           password,
           options: {
             data: {
-              username: username,
-              full_name: username,
+              full_name: email.split('@')[0], // Simple default name from email
             },
           },
         });
@@ -125,23 +123,6 @@ const Auth = () => {
               <GradientText className="text-xl text-center block">
                 {isLogin ? "Log in to your account" : "Create a new account"}
               </GradientText>
-              
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="username" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Username
-                  </Label>
-                  <Input
-                    id="username"
-                    placeholder="Your username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                    className="rounded-lg"
-                  />
-                </div>
-              )}
               
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center gap-2">
