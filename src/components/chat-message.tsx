@@ -1,5 +1,5 @@
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Message } from "@/types/chat";
 import ReactMarkdown from "react-markdown";
@@ -25,7 +25,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
               U
             </AvatarFallback>
           ) : (
-            <AvatarFallback className="bg-chat-ai text-primary-foreground">
+            <AvatarFallback 
+              className={cn(
+                "bg-gradient-to-br from-purple-500 to-indigo-500",
+                "text-primary-foreground font-semibold"
+              )}
+            >
               AI
             </AvatarFallback>
           )}
@@ -34,24 +39,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
       
       <div className="flex-1 space-y-4">
         <div className="prose prose-invert max-w-none">
-          {message.images && message.images.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {message.images.map((img, i) => (
-                <img 
-                  key={i}
-                  src={img}
-                  alt={`Uploaded image ${i+1}`}
-                  className="rounded-md max-h-64 object-contain"
-                />
-              ))}
-            </div>
-          )}
-          
           <ReactMarkdown
             components={{
-              code({ className, children, ...props }) {
-                // Remove all props that are causing type issues
-                // Only pass safe props to SyntaxHighlighter
+              code({ className, children }) {
                 const match = /language-(\w+)/.exec(className || '');
                 
                 return match ? (
@@ -63,7 +53,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                     {String(children).replace(/\n$/, '')}
                   </SyntaxHighlighter>
                 ) : (
-                  <code className={cn("bg-secondary/60 px-1 py-0.5 rounded", className)} {...props}>
+                  <code className={cn("bg-secondary/60 px-1 py-0.5 rounded", className)}>
                     {children}
                   </code>
                 );

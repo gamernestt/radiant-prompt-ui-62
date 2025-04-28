@@ -11,7 +11,12 @@ import { Check as CheckIcon, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ModelSelector() {
-  const { activeModel, setActiveModel, availableModels } = useChat();
+  const { activeModel, setActiveModel } = useChat();
+
+  const aiModels = [
+    { id: "gpt-4o", name: "GPT-4 Turbo", provider: "OpenRouter" },
+    { id: "gpt-4o-mini", name: "GPT-4 Mini", provider: "OpenRouter" },
+  ];
 
   return (
     <DropdownMenu>
@@ -22,7 +27,7 @@ export function ModelSelector() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[220px]">
-        {availableModels.map((model) => (
+        {aiModels.map((model) => (
           <DropdownMenuItem
             key={model.id}
             onClick={() => setActiveModel(model)}
