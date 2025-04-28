@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Message } from "@/types/chat";
 import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 interface ChatMessageProps {
@@ -49,13 +49,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
           
           <ReactMarkdown
             components={{
-              code({node, inline, className, children, ...props}) {
-                const match = /language-(\w+)/.exec(className || '')
-                return !inline && match ? (
+              code({ node, className, children, ...props }) {
+                const match = /language-(\w+)/.exec(className || '');
+                return match ? (
                   <SyntaxHighlighter
                     language={match[1]}
                     style={atomDark}
-                    customStyle={{borderRadius: '0.375rem'}}
                     PreTag="div"
                     {...props}
                   >
@@ -65,14 +64,14 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   <code className={cn("bg-secondary/60 px-1 py-0.5 rounded", className)} {...props}>
                     {children}
                   </code>
-                )
+                );
               },
-              a({node, children, ...props}) {
+              a({ node, children, ...props }) {
                 return (
                   <a className="text-primary underline" target="_blank" rel="noopener noreferrer" {...props}>
                     {children}
                   </a>
-                )
+                );
               }
             }}
           >
