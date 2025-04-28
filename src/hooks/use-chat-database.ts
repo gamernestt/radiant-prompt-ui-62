@@ -195,6 +195,7 @@ export const useChatDatabase = () => {
       if (msgError) throw msgError;
       
       // Update chat's updated_at timestamp
+      // Here's the fix: replacing .is('title', 'New Chat') with .eq('title', 'New Chat')
       const { error: updateError } = await supabase
         .from('chats')
         .update({ 
@@ -202,7 +203,7 @@ export const useChatDatabase = () => {
           ...(content.length > 0 && !hasImages ? { title: content.length > 30 ? content.substring(0, 27) + '...' : content } : {})
         })
         .eq('id', chatId)
-        .is('title', 'New Chat');
+        .eq('title', 'New Chat');
         
       if (updateError) throw updateError;
 
