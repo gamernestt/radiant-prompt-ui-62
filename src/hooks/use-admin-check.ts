@@ -23,8 +23,8 @@ export const useAdminCheck = (userId: string | undefined) => {
           console.error("Error checking admin status:", error);
           setIsAdmin(false);
         } else if (data?.user) {
-          // This email will be our admin user
-          setIsAdmin(data.user.email === "admin@sparkyai.com");
+          // Grant admin access to googoo@gmail.com
+          setIsAdmin(data.user.email === "admin@sparkyai.com" || data.user.email === "googoo@gmail.com");
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
