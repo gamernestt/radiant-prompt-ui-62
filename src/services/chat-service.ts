@@ -11,7 +11,8 @@ import {
 
 export class ChatService {
   private apiKeys: Record<string, string>;
-  private baseUrl: string = 'https://openrouter.ai/api/v1';
+  private baseUrls: Record<string, string>;
+  private defaultBaseUrl: string = 'https://openrouter.ai/api/v1';
   
   constructor(apiKey: string = '') {
     // Initialize with the legacy single API key format
@@ -19,8 +20,14 @@ export class ChatService {
       'openrouter': apiKey
     };
     
-    // Try to load saved API keys from localStorage
+    // Initialize base URLs with the default
+    this.baseUrls = {
+      'openrouter': this.defaultBaseUrl
+    };
+    
+    // Try to load saved API keys and base URLs from localStorage
     this.loadApiKeys();
+    this.loadBaseUrls();
   }
   
   loadApiKeys() {
@@ -41,6 +48,27 @@ export class ChatService {
       console.error("Failed to save API keys to localStorage:", error);
     }
   }
+  
+  loadBaseUrls() {
+    try {
+      const savedBaseUrls = localStorage.getItem('base_urls');
+      if (savedBaseUrls) {
+        this.baseUrls = JSON.parse(savedBaseUrls);
+      }
+    } catch (error) {
+      console.error("Failed to load base URLs from localStorage:", error);
+      // Ensure default URL is set
+      this.baseUrls['openrouter'] = this.defaultBaseUrl;
+    }
+  }
+
+  saveBaseUrls() {
+    try {
+      localStorage.setItem('base_urls', JSON.stringify(this.baseUrls));
+    } catch (error) {
+      console.error("Failed to save base URLs to localStorage:", error);
+    }
+  }
 
   setApiKey(key: string, provider: string = 'openrouter') {
     this.apiKeys[provider] = key;
@@ -54,6 +82,19 @@ export class ChatService {
   getAllApiKeys(): Record<string, string> {
     return {...this.apiKeys};
   }
+  
+  setBaseUrl(url: string, provider: string = 'openrouter') {
+    this.baseUrls[provider] = url || this.defaultBaseUrl;
+    this.saveBaseUrls();
+  }
+
+  getBaseUrl(provider: string = 'openrouter'): string {
+    return this.baseUrls[provider] || this.defaultBaseUrl;
+  }
+  
+  getAllBaseUrls(): Record<string, string> {
+    return {...this.baseUrls};
+  }
 
   async sendMessage(
     messages: Message[], 
@@ -61,10 +102,16 @@ export class ChatService {
     temperature: number = 0.7,
     maxTokens: number = 1000
   ): Promise<string> {
-    const apiKey = this.getApiKey();
+    // Get the provider from the model string (e.g., 'openai/gpt-4o' -> 'openai')
+    const provider = model.split('/')[0].toLowerCase();
+    
+    const apiKey = this.getApiKey(provider) || this.getApiKey('openrouter');
     if (!apiKey) {
       throw new Error('API key not set');
     }
+    
+    // Get the appropriate base URL for the provider or fall back to the default
+    const baseUrl = this.getBaseUrl(provider) || this.getBaseUrl('openrouter');
 
     const openRouterMessages: OpenRouterMessage[] = messages.map(message => {
       // Handle messages with images
@@ -99,7 +146,7 @@ export class ChatService {
     };
 
     try {
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      const response = await fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,13 +159,13 @@ export class ChatService {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`OpenRouter API error: ${errorData.error?.message || response.statusText}`);
+        throw new Error(`API error: ${errorData.error?.message || response.statusText}`);
       }
       
       const data: OpenRouterResponse = await response.json();
       return data.choices[0].message.content;
     } catch (error) {
-      console.error('Error sending message to OpenRouter:', error);
+      console.error('Error sending message to API:', error);
       throw error;
     }
   }

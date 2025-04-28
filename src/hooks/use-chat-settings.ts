@@ -9,6 +9,7 @@ export const useChatSettings = () => {
   const [activeModel, setActiveModelState] = useState<AIModels>(defaultModels[0]);
   const { toast } = useToast();
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+  const [baseUrls, setBaseUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const savedModel = localStorage.getItem("activeModel");
@@ -24,6 +25,10 @@ export const useChatSettings = () => {
     // Load API keys
     const keys = chatService.getAllApiKeys();
     setApiKeys(keys);
+
+    // Load base URLs
+    const urls = chatService.getAllBaseUrls();
+    setBaseUrls(urls);
   }, []);
 
   useEffect(() => {
@@ -40,12 +45,30 @@ export const useChatSettings = () => {
     });
   };
 
+  const setBaseUrl = (url: string, provider: string = 'openrouter') => {
+    chatService.setBaseUrl(url, provider);
+    setBaseUrls(chatService.getAllBaseUrls());
+    
+    toast({
+      title: `${provider.charAt(0).toUpperCase() + provider.slice(1)} Base URL Updated`,
+      description: `Your ${provider} base URL has been saved.`,
+    });
+  };
+
   const getApiKey = (provider: string = 'openrouter') => {
     return chatService.getApiKey(provider);
   };
 
+  const getBaseUrl = (provider: string = 'openrouter') => {
+    return chatService.getBaseUrl(provider);
+  };
+
   const getAllApiKeys = () => {
     return apiKeys;
+  };
+
+  const getAllBaseUrls = () => {
+    return baseUrls;
   };
 
   const setActiveModel = (model: AIModels) => {
@@ -58,6 +81,9 @@ export const useChatSettings = () => {
     setActiveModel,
     setApiKey,
     getApiKey,
-    getAllApiKeys
+    getAllApiKeys,
+    setBaseUrl,
+    getBaseUrl,
+    getAllBaseUrls
   };
 };

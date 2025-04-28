@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Globe } from "lucide-react";
 import { useChat } from "@/contexts/chat-context";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,11 +17,15 @@ export function ModelSettingsDialog({ isOpen, onOpenChange }: ModelSettingsDialo
   const { 
     getAllApiKeys, 
     setApiKey, 
-    availableModels 
+    availableModels,
+    getAllBaseUrls,
+    setBaseUrl
   } = useChat();
   
   const [apiKeyValues, setApiKeyValues] = useState<Record<string, string>>({});
+  const [baseUrlValues, setBaseUrlValues] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState("openrouter");
+  const [configTab, setConfigTab] = useState("apikeys");
   
   // Group models by provider
   const modelsByProvider = availableModels.reduce((acc, model) => {
@@ -40,10 +44,18 @@ export function ModelSettingsDialog({ isOpen, onOpenChange }: ModelSettingsDialo
     // Load existing API keys
     const initialApiKeys = getAllApiKeys ? getAllApiKeys() : {};
     setApiKeyValues(initialApiKeys);
-  }, [getAllApiKeys]);
+    
+    // Load existing base URLs
+    const initialBaseUrls = getAllBaseUrls ? getAllBaseUrls() : {};
+    setBaseUrlValues(initialBaseUrls);
+  }, [getAllApiKeys, getAllBaseUrls]);
 
   const handleSaveApiKey = (provider: string) => {
     setApiKey(apiKeyValues[provider] || '', provider);
+  };
+  
+  const handleSaveBaseUrl = (provider: string) => {
+    setBaseUrl(baseUrlValues[provider] || '', provider);
   };
 
   // Helper function to get provider display name with proper capitalization
@@ -71,9 +83,10 @@ export function ModelSettingsDialog({ isOpen, onOpenChange }: ModelSettingsDialo
           <DialogTitle>AI Models Settings</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <Tabs defaultValue="apikeys" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-2 mb-4">
+          <Tabs defaultValue="apikeys" value={configTab} onValueChange={setConfigTab}>
+            <TabsList className="grid grid-cols-3 mb-4">
               <TabsTrigger value="apikeys">API Keys</TabsTrigger>
+              <TabsTrigger value="baseurls">Base URLs</TabsTrigger>
               <TabsTrigger value="models">Available Models</TabsTrigger>
             </TabsList>
             
@@ -127,6 +140,53 @@ export function ModelSettingsDialog({ isOpen, onOpenChange }: ModelSettingsDialo
                         disabled={!apiKeyValues[provider]?.trim()}
                       >
                         Save {getProviderDisplayName(provider)} API Key
+                      </Button>
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </TabsContent>
+            
+            <TabsContent value="baseurls" className="space-y-4">
+              <Tabs defaultValue="openrouter" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="w-full flex flex-wrap">
+                  {providerNames.map((provider) => (
+                    <TabsTrigger key={provider} value={provider} className="flex-1 min-w-24">
+                      {getProviderDisplayName(provider)}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                {providerNames.map((provider) => (
+                  <TabsContent key={provider} value={provider} className="space-y-4 mt-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4" />
+                        <Label htmlFor={`${provider}-base-url`}>{getProviderDisplayName(provider)} Base URL</Label>
+                      </div>
+                      <Input
+                        id={`${provider}-base-url`}
+                        type="text"
+                        placeholder={provider === 'openrouter' ? 'https://openrouter.ai/api/v1' : `Enter ${getProviderDisplayName(provider)} base URL...`}
+                        value={baseUrlValues[provider] || ''}
+                        onChange={(e) => setBaseUrlValues({...baseUrlValues, [provider]: e.target.value})}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        {provider === 'openrouter' && (
+                          <>Default: https://openrouter.ai/api/v1</>
+                        )}
+                        {provider === 'openai' && (
+                          <>Default: https://api.openai.com/v1</>
+                        )}
+                        {provider === 'anthropic' && (
+                          <>Default: https://api.anthropic.com/v1</>
+                        )}
+                      </p>
+                      <Button 
+                        onClick={() => handleSaveBaseUrl(provider)} 
+                        className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90"
+                      >
+                        Save {getProviderDisplayName(provider)} Base URL
                       </Button>
                     </div>
                   </TabsContent>
