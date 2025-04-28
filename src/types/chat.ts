@@ -3,7 +3,7 @@ export type MessageRole = "user" | "assistant" | "system";
 
 export interface Message {
   id: string;
-  chat_id: string; // Make this required since the database requires it
+  chat_id: string;
   role: MessageRole;
   content: string;
   created_at: string;
