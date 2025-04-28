@@ -88,6 +88,12 @@ export const defaultModels: AIModels[] = [
     description: "Fast and affordable"
   },
   {
+    id: "anthropic/claude-3.7-sonnet",
+    name: "Claude 3.7 Sonnet",
+    provider: "Anthropic",
+    description: "Latest Claude model with advanced capabilities"
+  },
+  {
     id: "openai/gpt-4o",
     name: "GPT-4o",
     provider: "OpenAI",
@@ -110,6 +116,12 @@ export const defaultModels: AIModels[] = [
     name: "Llama 3.1 405B",
     provider: "Meta",
     description: "Large and powerful Llama model"
+  },
+  {
+    id: "meta-llama/llama-4-8b-it",
+    name: "Llama 4 8B",
+    provider: "Meta",
+    description: "New Llama 4 model with improved capabilities"
   },
   {
     id: "deepseek/deepseek-v2",

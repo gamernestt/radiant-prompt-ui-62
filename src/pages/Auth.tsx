@@ -63,7 +63,7 @@ const Auth = () => {
         
         navigate("/");
       } else {
-        // Signup without email verification
+        // Signup with immediate login (no email verification)
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -72,6 +72,7 @@ const Auth = () => {
               username: username,
               full_name: username,
             },
+            emailRedirectTo: window.location.origin,
           },
         });
         
