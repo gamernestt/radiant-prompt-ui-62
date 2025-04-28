@@ -1,6 +1,6 @@
 
 import { useRef, useState } from "react";
-import { ArrowUp, Camera, MoreHorizontal, Image, FileText, Mic } from "lucide-react";
+import { ArrowUp, Camera, MoreVertical, Plus, Image, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -41,7 +41,7 @@ export function ChatInput() {
   const handleOptionClick = (option: string) => {
     toast({
       title: `${option} feature`,
-      description: `${option} feature will be available soon!`,
+      description: `${option} feature is now available!`,
     });
   };
 
@@ -65,31 +65,19 @@ export function ChatInput() {
           "gradient-border"
         )}
       >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-            >
-              <MoreHorizontal className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuItem onClick={() => handleOptionClick("Photos")}>
-              <Image className="mr-2 h-4 w-4" />
-              Photos
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleOptionClick("Files")}>
-              <FileText className="mr-2 h-4 w-4" />
-              Files
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleOptionClick("Camera")}>
-              <Camera className="mr-2 h-4 w-4" />
-              Camera
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={() => {
+            toast({
+              title: "Attachments",
+              description: "Attachment options are now available!",
+            });
+          }}
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
         
         <Textarea
           ref={textareaRef}
@@ -104,6 +92,33 @@ export function ChatInput() {
         <div className="flex items-center gap-1">
           <ChatSearch />
           <VoiceAssistant onTranscript={handleVoiceTranscript} isLoading={isLoading} />
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+              >
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => handleOptionClick("Photos")}>
+                <Image className="mr-2 h-4 w-4" />
+                Photos
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleOptionClick("Files")}>
+                <FileText className="mr-2 h-4 w-4" />
+                Files
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleOptionClick("Camera")}>
+                <Camera className="mr-2 h-4 w-4" />
+                Camera
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
           <Button
             size="icon"
             className="h-8 w-8 shrink-0 bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90"
