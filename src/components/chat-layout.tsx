@@ -7,22 +7,45 @@ import { PromptSuggestions } from "./prompt-suggestions";
 import { ModelSelector } from "./model-selector";
 import { AppSidebar } from "./app-sidebar";
 import { GradientText } from "./gradient-text";
+import { LandingPage } from "./landing-page";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 export function ChatLayout() {
-  const { currentChat, sendMessage, getApiKey, isLoading } = useChat();
+  const { currentChat, getApiKey, isLoading } = useChat();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const apiKey = getApiKey();
   const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
   
   // Check if user is logged in
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("sparky_user");
-    if (!isLoggedIn) {
-      navigate("/auth");
-    }
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        navigate("/auth");
+      } else {
+        setUser(data.session.user);
+      }
+    };
+    
+    checkSession();
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          navigate("/auth");
+        } else if (session) {
+          setUser(session.user);
+        }
+      }
+    );
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [navigate]);
 
   useEffect(() => {
@@ -31,10 +54,6 @@ export function ChatLayout() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleSelectPrompt = (prompt: string) => {
-    sendMessage(prompt);
   };
 
   return (
@@ -76,11 +95,7 @@ export function ChatLayout() {
                   <div ref={messagesEndRef} />
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <div className="max-w-md w-full">
-                    <PromptSuggestions onSelectPrompt={handleSelectPrompt} className="w-full" />
-                  </div>
-                </div>
+                <LandingPage />
               )}
             </div>
             <ChatInput />

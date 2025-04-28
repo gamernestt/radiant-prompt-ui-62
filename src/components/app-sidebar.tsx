@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { Settings, Plus, MessageSquare, Menu, X, Zap, LogOut } from "lucide-react";
+import { Settings, Plus, MessageSquare, Menu, X, Zap, LogOut, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useChat } from "@/contexts/chat-context";
@@ -11,6 +11,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -32,12 +43,40 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [chatToDelete, setChatToDelete] = useState<string | null>(null);
   
   useEffect(() => {
-    const userInfo = JSON.parse(localStorage.getItem("sparky_user") || "{}");
-    setIsAdmin(userInfo.role === "admin");
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setUser(data.session.user);
+        setIsAdmin(data.session.user.email === "admin@sparky.ai");
+      } else {
+        navigate("/auth");
+      }
+    };
+    
+    checkSession();
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          navigate("/auth");
+        } else if (session) {
+          setUser(session.user);
+          setIsAdmin(session.user.email === "admin@sparky.ai");
+        }
+      }
+    );
+    
     setApiKeyValue(getApiKey());
-  }, [getApiKey]);
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [getApiKey, navigate]);
 
   const handleSaveApiKey = () => {
     setApiKey(apiKeyValue);
@@ -51,7 +90,24 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
     }
   };
   
-  const handleLogout = () => {
+  const handleDeleteChat = (chatId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setChatToDelete(chatId);
+    setDeleteDialogOpen(true);
+  };
+  
+  const confirmDeleteChat = () => {
+    if (chatToDelete) {
+      deleteChat(chatToDelete);
+      setDeleteDialogOpen(false);
+      setChatToDelete(null);
+    }
+  };
+  
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem("sparky_user");
     navigate("/auth");
   };
@@ -102,19 +158,27 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
         <div className="flex-1 overflow-y-auto p-2">
           <div className="space-y-1">
             {chats.map((chat) => (
-              <Button
-                key={chat.id}
-                variant={currentChat?.id === chat.id ? "secondary" : "ghost"}
-                className={cn(
-                  "w-full justify-start text-left truncate",
-                  "flex items-center gap-2 h-auto py-2 rounded-lg"
-                )}
-                onClick={() => handleChatClick(chat.id)}
-                onDoubleClick={() => deleteChat(chat.id)}
-              >
-                <MessageSquare className="h-4 w-4 shrink-0" />
-                <span className="truncate">{chat.title}</span>
-              </Button>
+              <div key={chat.id} className="flex items-center group">
+                <Button
+                  variant={currentChat?.id === chat.id ? "secondary" : "ghost"}
+                  className={cn(
+                    "w-full justify-start text-left truncate",
+                    "flex items-center gap-2 h-auto py-2 rounded-lg"
+                  )}
+                  onClick={() => handleChatClick(chat.id)}
+                >
+                  <MessageSquare className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{chat.title}</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => handleDeleteChat(chat.id, e)}
+                >
+                  <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                </Button>
+              </div>
             ))}
           </div>
         </div>
@@ -179,6 +243,24 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
           <Menu className="h-5 w-5" />
         </Button>
       )}
+      
+      {/* Delete Chat Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Chat</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this chat? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteChat} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

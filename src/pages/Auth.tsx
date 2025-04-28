@@ -7,82 +7,109 @@ import { GradientText } from "@/components/gradient-text";
 import { Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("sparky_user");
-    if (isLoggedIn) {
-      navigate("/");
-    }
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate("/");
+      }
+    };
+    
+    checkAuth();
   }, [navigate]);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    if (!isLogin && password !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
-    
-    // Mock login/signup for demo purposes
-    setTimeout(() => {
-      if (isLogin) {
-        // In a real app, validate credentials with a backend
-        if (email === "admin@sparky.ai" && password === "admin") {
-          localStorage.setItem("sparky_user", JSON.stringify({ email, name: "Admin", role: "admin" }));
-        } else if (email === "user@sparky.ai" && password === "user") {
-          localStorage.setItem("sparky_user", JSON.stringify({ email, name: "User", role: "user" }));
-        } else {
-          toast({
-            title: "Error",
-            description: "Invalid credentials. Try admin@sparky.ai/admin or user@sparky.ai/user",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
-      } else {
-        // In a real app, register user with a backend
-        localStorage.setItem("sparky_user", JSON.stringify({ email, name, role: "user" }));
+    try {
+      if (!isLogin && password !== confirmPassword) {
+        toast({
+          title: "Error",
+          description: "Passwords do not match",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
       }
       
+      if (isLogin) {
+        // Login
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (error) {
+          throw error;
+        }
+        
+        toast({
+          title: "Success",
+          description: "Logged in successfully!",
+        });
+        
+        navigate("/");
+      } else {
+        // Signup
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              username: username,
+              full_name: username,
+            },
+          },
+        });
+        
+        if (error) {
+          throw error;
+        }
+        
+        toast({
+          title: "Success",
+          description: "Account created successfully! You can now log in.",
+        });
+        
+        setIsLogin(true);
+      }
+    } catch (error: any) {
+      console.error("Auth error:", error);
       toast({
-        title: "Success",
-        description: isLogin ? "Logged in successfully!" : "Account created successfully!",
+        title: "Error",
+        description: error.message || "Authentication failed",
+        variant: "destructive",
       });
-      
-      navigate("/");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
   
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center">
-          <div className="h-16 w-16 bg-gradient-to-br from-accent to-primary rounded-full flex items-center justify-center mb-4 animate-pulse-subtle">
+          <div className="h-16 w-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4 animate-pulse-subtle">
             <Zap className="h-8 w-8 text-white" />
           </div>
           <GradientText className="text-3xl">Sparky AI</GradientText>
           <p className="text-muted-foreground mt-2">Your intelligent AI assistant</p>
         </div>
         
-        <div className="bg-card p-6 rounded-2xl shadow-lg border border-border">
+        <div className="bg-card p-6 rounded-2xl shadow-lg border border-border animate-fade-in">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               <GradientText className="text-xl text-center block">
@@ -91,12 +118,12 @@ const Auth = () => {
               
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="username">Username</Label>
                   <Input
-                    id="name"
-                    placeholder="Your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    id="username"
+                    placeholder="Your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     required
                     className="rounded-lg"
                   />
@@ -147,7 +174,7 @@ const Auth = () => {
             
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90 rounded-lg"
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90 rounded-lg"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -177,12 +204,12 @@ const Auth = () => {
           </div>
         </div>
         
-        <div className="text-center text-xs text-muted-foreground mt-4">
+        <div className="text-center text-xs text-muted-foreground mt-4 animate-fade-in" style={{ animationDelay: "0.3s" }}>
           <p>For demo: admin@sparky.ai / admin or user@sparky.ai / user</p>
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default Auth;

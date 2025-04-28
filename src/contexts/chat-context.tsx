@@ -3,6 +3,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { Chat, Message, AIModels, defaultModels } from "@/types/chat";
 import { chatService } from "@/services/chat-service";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from 'uuid';
 
 interface ChatContextProps {
   chats: Chat[];
@@ -10,7 +12,7 @@ interface ChatContextProps {
   activeModel: AIModels;
   isLoading: boolean;
   sendMessage: (content: string, images?: string[]) => Promise<void>;
-  createNewChat: () => void;
+  createNewChat: () => Chat;
   setCurrentChat: (chatId: string) => void;
   deleteChat: (chatId: string) => void;
   clearChats: () => void;
@@ -29,50 +31,34 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [availableModels] = useState<AIModels[]>(defaultModels);
   const [activeModel, setActiveModelState] = useState<AIModels>(defaultModels[0]);
   const { toast } = useToast();
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // Load chats from localStorage
-    const savedChats = localStorage.getItem("chats");
-    if (savedChats) {
-      try {
-        const parsedChats: Chat[] = JSON.parse(savedChats);
-        // Convert date strings back to Date objects
-        const processedChats = parsedChats.map(chat => ({
-          ...chat,
-          createdAt: new Date(chat.createdAt),
-          updatedAt: new Date(chat.updatedAt),
-          messages: chat.messages.map(msg => ({
-            ...msg,
-            createdAt: new Date(msg.createdAt)
-          }))
-        }));
-        setChats(processedChats);
-        
-        // Set current chat if there's a saved one
-        const lastChatId = localStorage.getItem("lastChatId");
-        if (lastChatId) {
-          const foundChat = processedChats.find(chat => chat.id === lastChatId);
-          if (foundChat) {
-            setCurrentChatState(foundChat);
-          } else if (processedChats.length > 0) {
-            setCurrentChatState(processedChats[0]);
-          }
-        } else if (processedChats.length > 0) {
-          setCurrentChatState(processedChats[0]);
-        }
-      } catch (error) {
-        console.error("Failed to parse saved chats:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load saved chats",
-          variant: "destructive"
-        });
+    // Check if user is logged in
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setUser(data.session.user);
+        loadChats(data.session.user.id);
       }
-    } else {
-      // Create a new chat if no chats exist
-      createNewChat();
-    }
-
+    };
+    
+    checkAuth();
+    
+    // Listen for auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          setUser(session.user);
+          loadChats(session.user.id);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setChats([]);
+          setCurrentChatState(null);
+        }
+      }
+    );
+    
     // Load saved model if it exists
     const savedModel = localStorage.getItem("activeModel");
     if (savedModel) {
@@ -83,65 +69,246 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         console.error("Failed to parse saved model:", error);
       }
     }
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
-  // Save chats to localStorage whenever they change
-  useEffect(() => {
-    if (chats.length > 0) {
-      localStorage.setItem("chats", JSON.stringify(chats));
+  // Load chats from Supabase
+  const loadChats = async (userId: string) => {
+    try {
+      // Get chats
+      const { data: chatsData, error: chatsError } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false });
+        
+      if (chatsError) throw chatsError;
+      
+      if (!chatsData || chatsData.length === 0) {
+        // Create a new chat if none exist
+        const newChat = await createNewChatInDb(userId);
+        setChats([newChat]);
+        setCurrentChatState(newChat);
+        return;
+      }
+      
+      // Get last chat id from localStorage
+      const lastChatId = localStorage.getItem("lastChatId");
+      let currentChatId = lastChatId;
+      
+      // If no last chat id or it doesn't exist in the loaded chats, use the first chat
+      if (!lastChatId || !chatsData.find(chat => chat.id === lastChatId)) {
+        currentChatId = chatsData[0].id;
+      }
+      
+      // Load messages for current chat
+      const currentChatWithMessages = await loadChatMessages(currentChatId as string);
+      
+      setChats(chatsData);
+      setCurrentChatState(currentChatWithMessages);
+      
+    } catch (error) {
+      console.error("Failed to load chats:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load your chats",
+        variant: "destructive"
+      });
     }
-  }, [chats]);
+  };
+  
+  // Load messages for a specific chat
+  const loadChatMessages = async (chatId: string): Promise<Chat> => {
+    try {
+      // Get chat details
+      const { data: chatData, error: chatError } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('id', chatId)
+        .single();
+        
+      if (chatError) throw chatError;
+      
+      // Get messages for this chat
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: true });
+        
+      if (messagesError) throw messagesError;
+      
+      return {
+        ...chatData,
+        messages: messagesData || []
+      };
+      
+    } catch (error) {
+      console.error("Failed to load chat messages:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load messages",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
 
-  // Save current chat to localStorage
+  // Save active model to localStorage
+  useEffect(() => {
+    localStorage.setItem("activeModel", JSON.stringify(activeModel));
+  }, [activeModel]);
+  
+  // Save current chat ID to localStorage
   useEffect(() => {
     if (currentChat) {
       localStorage.setItem("lastChatId", currentChat.id);
     }
   }, [currentChat]);
 
-  // Save active model to localStorage
-  useEffect(() => {
-    localStorage.setItem("activeModel", JSON.stringify(activeModel));
-  }, [activeModel]);
+  // Create a new chat in the database
+  const createNewChatInDb = async (userId: string): Promise<Chat> => {
+    try {
+      const newChat = {
+        id: uuidv4(),
+        user_id: userId,
+        title: 'New Chat',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        messages: []
+      };
+      
+      const { error } = await supabase
+        .from('chats')
+        .insert(newChat);
+        
+      if (error) throw error;
+      
+      return newChat;
+    } catch (error) {
+      console.error("Failed to create new chat:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create a new chat",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
 
   const createNewChat = () => {
-    const newChat = chatService.createEmptyChat();
-    setChats(prev => [newChat, ...prev]);
-    setCurrentChatState(newChat);
-    return newChat;
-  };
-
-  const setCurrentChat = (chatId: string) => {
-    const chat = chats.find(c => c.id === chatId);
-    if (chat) {
-      setCurrentChatState(chat);
-    }
-  };
-
-  const updateChat = (updatedChat: Chat) => {
-    setChats(prev => 
-      prev.map(chat => (chat.id === updatedChat.id ? updatedChat : chat))
-    );
-    if (currentChat?.id === updatedChat.id) {
-      setCurrentChatState(updatedChat);
-    }
-  };
-
-  const deleteChat = (chatId: string) => {
-    setChats(prev => prev.filter(chat => chat.id !== chatId));
-    if (currentChat?.id === chatId) {
-      const remainingChats = chats.filter(chat => chat.id !== chatId);
-      if (remainingChats.length > 0) {
-        setCurrentChatState(remainingChats[0]);
-      } else {
-        createNewChat();
+    if (!user) return {} as Chat;
+    
+    const createChat = async () => {
+      try {
+        const newChat = await createNewChatInDb(user.id);
+        setChats(prev => [newChat, ...prev]);
+        setCurrentChatState(newChat);
+        return newChat;
+      } catch (error) {
+        console.error("Error creating new chat:", error);
+        return {} as Chat;
       }
+    };
+    
+    return createChat();
+  };
+
+  const setCurrentChat = async (chatId: string) => {
+    try {
+      const chat = chats.find(c => c.id === chatId);
+      
+      if (chat) {
+        // If chat has no messages loaded, fetch them
+        if (!chat.messages || chat.messages.length === 0) {
+          const chatWithMessages = await loadChatMessages(chatId);
+          setCurrentChatState(chatWithMessages);
+          
+          // Update the chat in the chats array
+          setChats(prev => 
+            prev.map(c => c.id === chatId ? chatWithMessages : c)
+          );
+        } else {
+          setCurrentChatState(chat);
+        }
+      }
+    } catch (error) {
+      console.error("Error setting current chat:", error);
     }
   };
 
-  const clearChats = () => {
-    setChats([]);
-    createNewChat();
+  const deleteChat = async (chatId: string) => {
+    try {
+      // Delete from database
+      const { error } = await supabase
+        .from('chats')
+        .delete()
+        .eq('id', chatId);
+        
+      if (error) throw error;
+      
+      // Update state
+      setChats(prev => prev.filter(chat => chat.id !== chatId));
+      
+      // If deleted the current chat, set a new current chat
+      if (currentChat?.id === chatId) {
+        const remainingChats = chats.filter(chat => chat.id !== chatId);
+        if (remainingChats.length > 0) {
+          setCurrentChat(remainingChats[0].id);
+        } else {
+          // If no chats remain, create a new one
+          createNewChat();
+        }
+      }
+      
+      toast({
+        title: "Chat deleted",
+        description: "The chat has been deleted successfully",
+      });
+    } catch (error) {
+      console.error("Failed to delete chat:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the chat",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const clearChats = async () => {
+    if (!user) return;
+    
+    try {
+      // Delete all chats for the user
+      const { error } = await supabase
+        .from('chats')
+        .delete()
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      
+      // Clear state
+      setChats([]);
+      setCurrentChatState(null);
+      
+      // Create a new chat
+      createNewChat();
+      
+      toast({
+        title: "Chats cleared",
+        description: "All chats have been deleted",
+      });
+    } catch (error) {
+      console.error("Failed to clear chats:", error);
+      toast({
+        title: "Error",
+        description: "Failed to clear chats",
+        variant: "destructive"
+      });
+    }
   };
 
   const setApiKey = (key: string) => {
@@ -162,50 +329,108 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   };
 
   const sendMessage = async (content: string, images?: string[]) => {
-    if (!currentChat) return;
+    if (!currentChat || !user) return;
 
     try {
       setIsLoading(true);
       
-      // Add user message
-      const userMessage = chatService.createMessage("user", content, images);
+      // Create user message
+      const userMessage = {
+        id: uuidv4(),
+        chat_id: currentChat.id,
+        role: "user",
+        content: content,
+        created_at: new Date().toISOString(),
+        has_images: images && images.length > 0 ? true : false
+      } as Message;
       
-      // Update chat with user message
-      const updatedChat = {
-        ...currentChat,
-        messages: [...currentChat.messages, userMessage],
-        updatedAt: new Date()
-      };
+      // Save user message to database
+      const { error: msgError } = await supabase
+        .from('messages')
+        .insert(userMessage);
+        
+      if (msgError) throw msgError;
       
-      // Update title if it's the first message
-      if (currentChat.messages.length === 0) {
-        updatedChat.title = chatService.generateTitle([userMessage]);
+      // Update chat title if it's the first message
+      if (!currentChat.messages || currentChat.messages.length === 0) {
+        const newTitle = content.length > 30 ? content.substring(0, 27) + '...' : content;
+        
+        const { error: titleError } = await supabase
+          .from('chats')
+          .update({ title: newTitle, updated_at: new Date().toISOString() })
+          .eq('id', currentChat.id);
+          
+        if (titleError) throw titleError;
+      } else {
+        // Update chat timestamp
+        const { error: updateError } = await supabase
+          .from('chats')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', currentChat.id);
+          
+        if (updateError) throw updateError;
       }
       
-      updateChat(updatedChat);
+      // Update local state with user message
+      const updatedMessages = [...(currentChat.messages || []), userMessage];
+      const updatedChat = {
+        ...currentChat,
+        messages: updatedMessages,
+        title: updatedMessages.length === 1 ? (content.length > 30 ? content.substring(0, 27) + '...' : content) : currentChat.title,
+        updated_at: new Date().toISOString()
+      };
       
-      // Send message to API
+      setCurrentChatState(updatedChat);
+      setChats(prev => 
+        prev.map(chat => chat.id === currentChat.id ? {
+          ...chat,
+          title: updatedMessages.length === 1 ? (content.length > 30 ? content.substring(0, 27) + '...' : content) : chat.title,
+          updated_at: new Date().toISOString()
+        } : chat)
+      );
+      
+      // Get AI response
       const assistantContent = await chatService.sendMessage(
-        updatedChat.messages,
+        updatedMessages,
         activeModel.id
       );
       
-      // Add assistant response
-      const assistantMessage = chatService.createMessage("assistant", assistantContent);
+      // Create assistant message
+      const assistantMessage = {
+        id: uuidv4(),
+        chat_id: currentChat.id,
+        role: "assistant",
+        content: assistantContent,
+        created_at: new Date().toISOString(),
+        has_images: false
+      } as Message;
       
-      // Update chat with assistant message
+      // Save assistant message to database
+      const { error: assistantError } = await supabase
+        .from('messages')
+        .insert(assistantMessage);
+        
+      if (assistantError) throw assistantError;
+      
+      // Update local state with assistant message
+      const finalMessages = [...updatedMessages, assistantMessage];
       const finalChat = {
         ...updatedChat,
-        messages: [...updatedChat.messages, assistantMessage],
-        updatedAt: new Date()
+        messages: finalMessages
       };
       
-      updateChat(finalChat);
-    } catch (error) {
+      setCurrentChatState(finalChat);
+      setChats(prev => 
+        prev.map(chat => chat.id === currentChat.id ? {
+          ...chat,
+          updated_at: new Date().toISOString()
+        } : chat)
+      );
+    } catch (error: any) {
       console.error("Error sending message:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send message",
+        description: error.message || "Failed to send message",
         variant: "destructive"
       });
     } finally {

@@ -1,6 +1,6 @@
 
 import { useRef, useState } from "react";
-import { ArrowUp, Camera, MoreHorizontal, MoreVertical } from "lucide-react";
+import { ArrowUp, Camera, MoreHorizontal, Image, FileText, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -12,6 +12,8 @@ import {
 import { useChat } from "@/contexts/chat-context";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { VoiceAssistant } from "./voice-assistant";
+import { ChatSearch } from "./chat-search";
 
 export function ChatInput() {
   const { sendMessage, isLoading } = useChat();
@@ -38,9 +40,17 @@ export function ChatInput() {
 
   const handleOptionClick = (option: string) => {
     toast({
-      title: "Coming Soon",
+      title: `${option} feature`,
       description: `${option} feature will be available soon!`,
     });
+  };
+
+  const handleVoiceTranscript = (text: string) => {
+    setInput(text);
+    // Focus the textarea after a voice transcript
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
   };
 
   return (
@@ -51,7 +61,8 @@ export function ChatInput() {
           "shadow-[0_0_15px_rgba(0,0,0,0.1)]",
           "backdrop-blur-sm",
           "transition-colors focus-within:ring-1 focus-within:ring-ring",
-          "before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-b before:from-primary/5 before:to-transparent before:opacity-50"
+          "before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-b before:from-primary/5 before:to-transparent before:opacity-50",
+          "gradient-border"
         )}
       >
         <DropdownMenu>
@@ -64,11 +75,13 @@ export function ChatInput() {
               <MoreHorizontal className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
+          <DropdownMenuContent align="start" className="w-48">
             <DropdownMenuItem onClick={() => handleOptionClick("Photos")}>
+              <Image className="mr-2 h-4 w-4" />
               Photos
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleOptionClick("Files")}>
+              <FileText className="mr-2 h-4 w-4" />
               Files
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleOptionClick("Camera")}>
@@ -88,14 +101,18 @@ export function ChatInput() {
           disabled={isLoading}
         />
         
-        <Button
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={handleSubmit}
-          disabled={!input.trim() || isLoading}
-        >
-          <ArrowUp className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <ChatSearch />
+          <VoiceAssistant onTranscript={handleVoiceTranscript} isLoading={isLoading} />
+          <Button
+            size="icon"
+            className="h-8 w-8 shrink-0 bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90"
+            onClick={handleSubmit}
+            disabled={!input.trim() || isLoading}
+          >
+            <ArrowUp className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -49,7 +49,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           "prose prose-invert max-w-none inline-block p-4 rounded-lg",
           isUser ? 
             "bg-chat-user/20 rounded-tr-none" : 
-            "gradient-border bg-background rounded-tl-none"
+            "animate-pulse-border rounded-tl-none"
         )}>
           <ReactMarkdown
             components={{
@@ -102,7 +102,7 @@ export function TypingAnimation() {
       </div>
       
       <div className="flex-1 space-y-4">
-        <div className="gradient-border bg-background p-4 rounded-lg rounded-tl-none inline-block">
+        <div className="animate-pulse-border p-4 rounded-lg rounded-tl-none inline-block">
           <div className="typing-animation">
             <span></span>
             <span></span>
