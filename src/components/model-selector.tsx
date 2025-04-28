@@ -9,6 +9,7 @@ import {
 import { useChat } from "@/contexts/chat-context";
 import { Check as CheckIcon, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 export function ModelSelector() {
   const { activeModel, setActiveModel } = useChat();
@@ -16,7 +17,16 @@ export function ModelSelector() {
   const aiModels = [
     { id: "gpt-4o", name: "GPT-4 Turbo", provider: "OpenRouter" },
     { id: "gpt-4o-mini", name: "GPT-4 Mini", provider: "OpenRouter" },
+    { id: "claude-3-opus", name: "Claude Opus", provider: "Anthropic" },
   ];
+
+  const handleModelChange = (model: any) => {
+    setActiveModel(model);
+    toast({
+      title: "Model changed",
+      description: `Now using ${model.name} by ${model.provider}`,
+    });
+  };
 
   return (
     <DropdownMenu>
@@ -30,7 +40,7 @@ export function ModelSelector() {
         {aiModels.map((model) => (
           <DropdownMenuItem
             key={model.id}
-            onClick={() => setActiveModel(model)}
+            onClick={() => handleModelChange(model)}
             className={cn(
               "flex items-center justify-between cursor-pointer",
               model.id === activeModel.id && "bg-secondary"
