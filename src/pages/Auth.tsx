@@ -72,6 +72,7 @@ const Auth = () => {
               username: username,
               full_name: username,
             },
+            emailRedirectTo: window.location.origin,
           },
         });
         
@@ -202,10 +203,6 @@ const Auth = () => {
                 : "Already have an account? Sign in"}
             </Button>
           </div>
-        </div>
-        
-        <div className="text-center text-xs text-muted-foreground mt-4 animate-fade-in" style={{ animationDelay: "0.3s" }}>
-          <p>For demo: admin@sparky.ai / admin or user@sparky.ai / user</p>
         </div>
       </div>
     </div>
