@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,8 +62,8 @@ const Auth = () => {
         
         navigate("/");
       } else {
-        // Signup with immediate login (no email verification)
-        const { error } = await supabase.auth.signUp({
+        // Signup with auto-confirmation (no email verification)
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -72,7 +71,6 @@ const Auth = () => {
               username: username,
               full_name: username,
             },
-            emailRedirectTo: window.location.origin,
           },
         });
         
@@ -80,7 +78,7 @@ const Auth = () => {
           throw error;
         }
         
-        // Automatically sign in after signup
+        // Auto sign in after signup
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
