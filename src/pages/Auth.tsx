@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GradientText } from "@/components/gradient-text";
-import { Zap, Mail, Lock, User, Discord } from "lucide-react";
+import { Zap, Mail, Lock, User, MessageSquare } from "lucide-react"; // Changed Discord to MessageSquare
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -256,7 +255,7 @@ const Auth = () => {
               onClick={handleDiscordLogin}
               disabled={isDiscordLoading}
             >
-              <Discord className="h-5 w-5 text-indigo-600" />
+              <MessageSquare className="h-5 w-5 text-indigo-600" /> {/* Changed from Discord to MessageSquare */}
               {isDiscordLoading ? "Connecting..." : "Sign in with Discord"}
             </Button>
           </form>
