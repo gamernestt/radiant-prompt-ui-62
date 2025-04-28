@@ -5,23 +5,54 @@ import {
   Chat, 
   OpenRouterRequest, 
   OpenRouterResponse, 
-  OpenRouterMessage 
+  OpenRouterMessage,
+  APIKeyConfig 
 } from '@/types/chat';
 
 export class ChatService {
-  private apiKey: string;
+  private apiKeys: Record<string, string>;
   private baseUrl: string = 'https://openrouter.ai/api/v1';
   
   constructor(apiKey: string = '') {
-    this.apiKey = apiKey;
+    // Initialize with the legacy single API key format
+    this.apiKeys = {
+      'openrouter': apiKey
+    };
+    
+    // Try to load saved API keys from localStorage
+    this.loadApiKeys();
+  }
+  
+  loadApiKeys() {
+    try {
+      const savedApiKeys = localStorage.getItem('api_keys');
+      if (savedApiKeys) {
+        this.apiKeys = JSON.parse(savedApiKeys);
+      }
+    } catch (error) {
+      console.error("Failed to load API keys from localStorage:", error);
+    }
   }
 
-  setApiKey(apiKey: string) {
-    this.apiKey = apiKey;
+  saveApiKeys() {
+    try {
+      localStorage.setItem('api_keys', JSON.stringify(this.apiKeys));
+    } catch (error) {
+      console.error("Failed to save API keys to localStorage:", error);
+    }
   }
 
-  getApiKey(): string {
-    return this.apiKey;
+  setApiKey(key: string, provider: string = 'openrouter') {
+    this.apiKeys[provider] = key;
+    this.saveApiKeys();
+  }
+
+  getApiKey(provider: string = 'openrouter'): string {
+    return this.apiKeys[provider] || '';
+  }
+  
+  getAllApiKeys(): Record<string, string> {
+    return {...this.apiKeys};
   }
 
   async sendMessage(
@@ -30,7 +61,8 @@ export class ChatService {
     temperature: number = 0.7,
     maxTokens: number = 1000
   ): Promise<string> {
-    if (!this.apiKey) {
+    const apiKey = this.getApiKey();
+    if (!apiKey) {
       throw new Error('API key not set');
     }
 
@@ -71,9 +103,9 @@ export class ChatService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          'Authorization': `Bearer ${apiKey}`,
           'HTTP-Referer': window.location.origin,
-          'X-Title': 'Radiant Chat UI'
+          'X-Title': 'Sparky AI'
         },
         body: JSON.stringify(payload)
       });
@@ -126,6 +158,7 @@ export class ChatService {
   }
 }
 
+// Initialize with legacy key from localStorage if available
 export const chatService = new ChatService(
   localStorage.getItem('openrouter_api_key') || ''
 );

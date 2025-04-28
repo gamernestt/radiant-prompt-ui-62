@@ -21,7 +21,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { chatService } from "@/services/chat-service";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -36,7 +38,8 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
     createNewChat, 
     deleteChat, 
     setApiKey, 
-    getApiKey 
+    getApiKey,
+    availableModels
   } = useChat();
   const isMobile = useIsMobile();
   const [apiKeyValue, setApiKeyValue] = useState("");
@@ -46,13 +49,28 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
   const [user, setUser] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("openrouter");
+  
+  // Group models by provider
+  const modelsByProvider = availableModels.reduce((acc, model) => {
+    const provider = model.provider.toLowerCase();
+    if (!acc[provider]) {
+      acc[provider] = [];
+    }
+    acc[provider].push(model);
+    return acc;
+  }, {} as Record<string, typeof availableModels>);
+  
+  // Get unique provider names
+  const providerNames = Object.keys(modelsByProvider);
   
   useEffect(() => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
         setUser(data.session.user);
-        setIsAdmin(data.session.user.email === "admin@sparky.ai");
+        // Admin is now anyone who is logged in
+        setIsAdmin(true);
       } else {
         navigate("/auth");
       }
@@ -66,7 +84,8 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
           navigate("/auth");
         } else if (session) {
           setUser(session.user);
-          setIsAdmin(session.user.email === "admin@sparky.ai");
+          // Admin is now anyone who is logged in
+          setIsAdmin(true);
         }
       }
     );
@@ -192,27 +211,57 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
                     <Settings className="h-5 w-5" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Admin Settings</DialogTitle>
+                    <DialogTitle>AI Models Settings</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="api-key">OpenRouter API Key</Label>
-                      <Input
-                        id="api-key"
-                        type="password"
-                        placeholder="or_api_..."
-                        value={apiKeyValue}
-                        onChange={(e) => setApiKeyValue(e.target.value)}
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Get your API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline">openrouter.ai</a>
-                      </p>
-                    </div>
-                    <Button onClick={handleSaveApiKey} className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90">
-                      Save Settings
-                    </Button>
+                    <Tabs defaultValue="openrouter" value={activeTab} onValueChange={setActiveTab}>
+                      <TabsList className="grid grid-cols-2 mb-4">
+                        <TabsTrigger value="openrouter">OpenRouter</TabsTrigger>
+                        <TabsTrigger value="models">Available Models</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="openrouter" className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="api-key">OpenRouter API Key</Label>
+                          <Input
+                            id="api-key"
+                            type="password"
+                            placeholder="or_api_..."
+                            value={apiKeyValue}
+                            onChange={(e) => setApiKeyValue(e.target.value)}
+                          />
+                          <p className="text-sm text-muted-foreground">
+                            Get your API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline">openrouter.ai</a>
+                          </p>
+                        </div>
+                        <Button onClick={handleSaveApiKey} className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90">
+                          Save API Key
+                        </Button>
+                      </TabsContent>
+                      
+                      <TabsContent value="models">
+                        <div className="space-y-4">
+                          {providerNames.map((provider) => (
+                            <div key={provider} className="space-y-2">
+                              <h3 className="text-lg font-medium capitalize">{provider}</h3>
+                              <ul className="space-y-2">
+                                {modelsByProvider[provider].map((model) => (
+                                  <li key={model.id} className="p-2 bg-secondary/30 rounded-md">
+                                    <div className="font-medium">{model.name}</div>
+                                    <div className="text-xs text-muted-foreground">{model.id}</div>
+                                    {model.description && (
+                                      <div className="text-sm mt-1">{model.description}</div>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                   </div>
                 </DialogContent>
               </Dialog>

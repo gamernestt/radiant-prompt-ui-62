@@ -50,6 +50,11 @@ export interface OpenRouterResponse {
   }[];
 }
 
+export interface APIKeyConfig {
+  provider: string;
+  key: string;
+}
+
 export interface AIModels {
   id: string;
   name: string;
@@ -59,10 +64,16 @@ export interface AIModels {
 
 export const defaultModels: AIModels[] = [
   {
+    id: "anthropic/claude-3.5-sonnet",
+    name: "Claude 3.5 Sonnet",
+    provider: "Anthropic",
+    description: "Latest model from Anthropic with enhanced capabilities"
+  },
+  {
     id: "anthropic/claude-3-opus",
     name: "Claude 3 Opus",
     provider: "Anthropic",
-    description: "Most powerful model for complex tasks"
+    description: "Most powerful Claude model for complex tasks"
   },
   {
     id: "anthropic/claude-3-sonnet",
@@ -89,9 +100,21 @@ export const defaultModels: AIModels[] = [
     description: "Multimodal model with long context"
   },
   {
-    id: "meta-llama/llama-3-70b-instruct",
-    name: "Llama 3 70B",
+    id: "meta-llama/llama-4-vision-8b-it",
+    name: "Llama 4 Vision 8B",
     provider: "Meta",
-    description: "Open model with strong capabilities"
+    description: "Vision + reasoning capabilities"
+  },
+  {
+    id: "meta-llama/llama-3.1-405b-instruct",
+    name: "Llama 3.1 405B",
+    provider: "Meta",
+    description: "Large and powerful Llama model"
+  },
+  {
+    id: "deepseek/deepseek-v2",
+    name: "Deepseek R1",
+    provider: "Deepseek",
+    description: "Latest model from Deepseek AI"
   },
 ];

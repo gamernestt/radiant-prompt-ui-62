@@ -63,7 +63,7 @@ const Auth = () => {
         
         navigate("/");
       } else {
-        // Signup
+        // Signup without email verification
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -72,7 +72,6 @@ const Auth = () => {
               username: username,
               full_name: username,
             },
-            emailRedirectTo: window.location.origin,
           },
         });
         
@@ -80,12 +79,22 @@ const Auth = () => {
           throw error;
         }
         
-        toast({
-          title: "Success",
-          description: "Account created successfully! You can now log in.",
+        // Automatically sign in after signup
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
         });
         
-        setIsLogin(true);
+        if (signInError) {
+          throw signInError;
+        }
+        
+        toast({
+          title: "Success",
+          description: "Account created successfully! You are now logged in.",
+        });
+        
+        navigate("/");
       }
     } catch (error: any) {
       console.error("Auth error:", error);
