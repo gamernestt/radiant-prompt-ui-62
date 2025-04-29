@@ -72,7 +72,7 @@ export function ChatList({ onToggle }: ChatListProps) {
                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => handleDeleteChat(chat.id, e)}
               >
-                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive group-hover:text-destructive" />
               </Button>
             </div>
           ))}
