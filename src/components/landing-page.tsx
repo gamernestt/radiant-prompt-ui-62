@@ -4,9 +4,13 @@ import { GradientText } from "@/components/gradient-text";
 import { useChat } from "@/contexts/chat-context";
 import { Zap, MessageSquare, Sparkles, Search, Brain, Music, Code, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 export function LandingPage() {
-  const { createNewChat } = useChat();
+  const { createNewChat, sendMessage } = useChat();
+  const navigate = useNavigate();
+  const [isNavigating, setIsNavigating] = useState(false);
   
   const featuredPrompts = [
     {
@@ -31,13 +35,27 @@ export function LandingPage() {
     },
   ];
   
-  const handleStartChat = (prompt?: string) => {
-    const newChat = createNewChat();
-    if (prompt) {
-      setTimeout(() => {
-        // This timeout allows the chat context to update before sending the message
-        useChat().sendMessage(prompt);
-      }, 100);
+  const handleStartChat = async (prompt?: string) => {
+    if (isNavigating) return;
+    
+    setIsNavigating(true);
+    try {
+      const newChat = createNewChat();
+      
+      // Ensure we navigate to the chat page first
+      navigate("/");
+      
+      // Wait a bit to ensure chat context is updated
+      if (prompt) {
+        // Use setTimeout to ensure the chat context is fully updated
+        setTimeout(() => {
+          sendMessage(prompt);
+        }, 200);
+      }
+    } catch (error) {
+      console.error("Error starting chat:", error);
+    } finally {
+      setIsNavigating(false);
     }
   };
 
@@ -57,7 +75,8 @@ export function LandingPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           <Button 
             onClick={() => handleStartChat()}
-            className="h-20 bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90"
+            className="h-20 bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90 relative z-10"
+            disabled={isNavigating}
           >
             <div className="flex items-center justify-center gap-3">
               <MessageSquare className="h-6 w-6" />
@@ -67,8 +86,9 @@ export function LandingPage() {
           
           <Button 
             variant="outline" 
-            className="h-20 border-2 border-purple-500/20 hover:border-purple-500/40 transition-all"
+            className="h-20 border-2 border-purple-500/20 hover:border-purple-500/40 transition-all relative z-10"
             onClick={() => handleStartChat("What can you help me with today?")}
+            disabled={isNavigating}
           >
             <div className="flex items-center justify-center gap-3">
               <Sparkles className="h-6 w-6 text-purple-500" />
@@ -85,15 +105,16 @@ export function LandingPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {featuredPrompts.map((item, index) => (
-              <div 
+              <button 
                 key={index}
                 onClick={() => handleStartChat(item.prompt)}
                 className={cn(
-                  "p-4 rounded-lg border cursor-pointer",
+                  "p-4 rounded-lg border w-full text-left relative z-10",
                   "hover:bg-accent/50 hover:border-accent transition-colors",
-                  "animate-fade-in"
+                  "animate-fade-in cursor-pointer"
                 )}
                 style={{ animationDelay: `${index * 0.1}s` }}
+                disabled={isNavigating}
               >
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -104,7 +125,7 @@ export function LandingPage() {
                     <p className="text-sm text-muted-foreground truncate">{item.prompt}</p>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>

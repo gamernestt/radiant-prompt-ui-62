@@ -1,214 +1,143 @@
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { GradientText } from "@/components/gradient-text";
-import { Zap, Mail, Lock } from "lucide-react"; 
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { GradientText } from '@/components/gradient-text';
+import { supabase } from '@/integrations/supabase/client';
+import { Zap } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+export default function Auth() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   useEffect(() => {
-    const checkAuth = async () => {
+    // Check if user is already logged in
+    const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        navigate("/");
+        navigate('/');
       }
     };
     
-    checkAuth();
+    checkSession();
   }, [navigate]);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
     
     try {
-      if (!isLogin && password !== confirmPassword) {
-        toast({
-          title: "Error",
-          description: "Passwords do not match",
-          variant: "destructive",
+      if (isSignUp) {
+        // Sign up flow
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
         });
-        setIsLoading(false);
-        return;
-      }
-      
-      if (isLogin) {
-        // Login
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Success!",
+          description: "Check your email for a confirmation link.",
+        });
+      } else {
+        // Sign in flow
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
         
-        toast({
-          title: "Success",
-          description: "Logged in successfully!",
-        });
-        
-        navigate("/");
-      } else {
-        // Signup with auto-confirmation (no email verification)
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: email.split('@')[0], // Simple default name from email
-            },
-          },
-        });
-        
-        if (error) {
-          throw error;
-        }
-        
-        // Auto sign in after signup
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        if (signInError) {
-          throw signInError;
-        }
-        
-        toast({
-          title: "Success",
-          description: "Account created successfully! You are now logged in.",
-        });
-        
-        navigate("/");
+        // Redirect to home page on successful sign in
+        navigate('/');
       }
     } catch (error: any) {
-      console.error("Auth error:", error);
       toast({
         title: "Error",
-        description: error.message || "Authentication failed",
+        description: error.message || "An error occurred during authentication",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
-  
+
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-background p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="flex flex-col items-center text-center">
-          <div className="h-16 w-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4 animate-pulse-subtle">
-            <Zap className="h-8 w-8 text-white" />
+    <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-background">
+      <div className="w-full max-w-md mx-auto space-y-8">
+        <div className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+              <Zap className="h-8 w-8 text-white" />
+            </div>
           </div>
-          <GradientText className="text-3xl">Sparky AI</GradientText>
-          <p className="text-muted-foreground mt-2">Your intelligent AI assistant</p>
+          <GradientText className="text-3xl font-bold mb-2">
+            {isSignUp ? 'Create an Account' : 'Welcome Back'}
+          </GradientText>
+          <p className="text-muted-foreground">
+            {isSignUp 
+              ? 'Sign up to start chatting with Sparky AI'
+              : 'Sign in to continue your conversation with Sparky AI'}
+          </p>
         </div>
         
-        <div className="bg-card p-6 rounded-2xl shadow-lg border border-border animate-fade-in">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <GradientText className="text-xl text-center block">
-                {isLogin ? "Log in to your account" : "Create a new account"}
-              </GradientText>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="rounded-lg"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password" className="flex items-center gap-2">
-                  <Lock className="h-4 w-4" />
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="rounded-lg"
-                />
-              </div>
-              
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="flex items-center gap-2">
-                    <Lock className="h-4 w-4" />
-                    Confirm Password
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    className="rounded-lg"
-                  />
-                </div>
-              )}
-            </div>
-            
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90 rounded-lg"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="typing-animation">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-              ) : isLogin ? (
-                "Sign in"
-              ) : (
-                "Create account"
-              )}
-            </Button>
-            
-            <div className="flex justify-center items-center mt-4 text-center">
-              <Button
-                variant="link"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm"
-              >
-                {isLogin
-                  ? "Don't have an account? Sign up"
-                  : "Already have an account? Sign in"}
-              </Button>
-            </div>
-          </form>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label htmlFor="email" className="block text-sm font-medium">
+              Email
+            </label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              required
+              className="w-full"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label htmlFor="password" className="block text-sm font-medium">
+              Password
+            </label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              className="w-full"
+            />
+          </div>
+          
+          <Button 
+            type="submit" 
+            className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Processing...' : isSignUp ? 'Sign Up' : 'Sign In'}
+          </Button>
+        </form>
+        
+        <div className="text-center">
+          <Button 
+            variant="link" 
+            onClick={() => setIsSignUp(!isSignUp)} 
+            className="text-primary"
+          >
+            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+          </Button>
         </div>
       </div>
     </div>
   );
 }
-
-export default Auth;
