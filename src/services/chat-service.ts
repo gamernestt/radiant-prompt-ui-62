@@ -1,108 +1,46 @@
 
-import { v4 as uuidv4 } from 'uuid';
-import { 
-  Message, 
-  Chat, 
-  OpenRouterRequest, 
-  OpenRouterResponse, 
-  OpenRouterMessage,
-  APIKeyConfig 
-} from '@/types/chat';
+import { Message } from '@/types/chat';
+import { OpenRouterClient } from './api/openrouter-client';
+import { ApiConfigService } from './config/api-config';
+import { ChatUtilsService } from './utils/chat-utils';
 
 export class ChatService {
-  private apiKeys: Record<string, string>;
-  private baseUrls: Record<string, string>;
-  private defaultBaseUrl: string = 'https://openrouter.ai/api/v1';
+  private apiConfig: ApiConfigService;
+  private utils: ChatUtilsService;
   
   constructor(apiKey: string = '') {
-    // Initialize with the legacy single API key format
-    this.apiKeys = {
-      'openrouter': apiKey,
-      'openai': '',
-      'deepseek': ''
-    };
-    
-    // Initialize base URLs with the default
-    this.baseUrls = {
-      'openrouter': this.defaultBaseUrl,
-      'openai': this.defaultBaseUrl,
-      'deepseek': this.defaultBaseUrl
-    };
-    
-    // Try to load saved API keys and base URLs from localStorage
-    this.loadApiKeys();
-    this.loadBaseUrls();
+    // Initialize services
+    this.apiConfig = new ApiConfigService(apiKey);
+    this.utils = new ChatUtilsService();
   }
   
-  loadApiKeys() {
-    try {
-      const savedApiKeys = localStorage.getItem('api_keys');
-      if (savedApiKeys) {
-        this.apiKeys = JSON.parse(savedApiKeys);
-      }
-    } catch (error) {
-      console.error("Failed to load API keys from localStorage:", error);
-    }
-  }
-
-  saveApiKeys() {
-    try {
-      localStorage.setItem('api_keys', JSON.stringify(this.apiKeys));
-    } catch (error) {
-      console.error("Failed to save API keys to localStorage:", error);
-    }
-  }
-  
-  loadBaseUrls() {
-    try {
-      const savedBaseUrls = localStorage.getItem('base_urls');
-      if (savedBaseUrls) {
-        this.baseUrls = JSON.parse(savedBaseUrls);
-      }
-    } catch (error) {
-      console.error("Failed to load base URLs from localStorage:", error);
-      // Ensure default URL is set
-      this.baseUrls['openrouter'] = this.defaultBaseUrl;
-      this.baseUrls['openai'] = this.defaultBaseUrl;
-      this.baseUrls['deepseek'] = this.defaultBaseUrl;
-    }
-  }
-
-  saveBaseUrls() {
-    try {
-      localStorage.setItem('base_urls', JSON.stringify(this.baseUrls));
-    } catch (error) {
-      console.error("Failed to save base URLs to localStorage:", error);
-    }
-  }
-
+  // API Key management
   setApiKey(key: string, provider: string = 'openai') {
-    this.apiKeys[provider] = key;
-    this.saveApiKeys();
+    this.apiConfig.setApiKey(key, provider);
   }
 
   getApiKey(provider: string = 'openai'): string {
-    return this.apiKeys[provider] || '';
+    return this.apiConfig.getApiKey(provider);
   }
   
   getAllApiKeys(): Record<string, string> {
-    return {...this.apiKeys};
+    return this.apiConfig.getAllApiKeys();
   }
   
+  // Base URL management
   setBaseUrl(url: string, provider: string = 'openai') {
-    // Always set to OpenRouter URL for all providers
-    this.baseUrls[provider] = this.defaultBaseUrl;
-    this.saveBaseUrls();
+    this.apiConfig.setBaseUrl(url, provider);
   }
 
   getBaseUrl(provider: string = 'openai'): string {
-    return this.baseUrls[provider] || this.defaultBaseUrl;
+    return this.apiConfig.getBaseUrl(provider);
   }
   
   getAllBaseUrls(): Record<string, string> {
-    return {...this.baseUrls};
+    return this.apiConfig.getAllBaseUrls();
   }
 
+  // Message sending
   async sendMessage(
     messages: Message[], 
     model: string = 'openai/gpt-4o',
@@ -124,100 +62,26 @@ export class ChatService {
       throw new Error(`API key not set for ${provider}. Please set your API key in the settings.`);
     }
     
-    // Always use OpenRouter base URL
-    const baseUrl = this.defaultBaseUrl;
-    
     console.log(`Sending message using model: ${model}`);
-
-    const openRouterMessages: OpenRouterMessage[] = messages.map(message => {
-      // Handle messages with images
-      if (message.has_images && message.images && message.images.length > 0) {
-        return {
-          role: message.role,
-          content: [
-            {
-              type: "text",
-              text: message.content
-            },
-            ...message.images.map(imageUrl => ({
-              type: "image_url",
-              image_url: { url: imageUrl }
-            }))
-          ]
-        } as unknown as OpenRouterMessage;
-      }
-      // Regular text message
-      return {
-        role: message.role,
-        content: message.content
-      };
-    });
-
-    const payload: OpenRouterRequest = {
-      model,
-      messages: openRouterMessages,
-      temperature,
-      max_tokens: maxTokens,
-      stream: false
-    };
-
-    try {
-      const response = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Sparky AI'
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`API error: ${errorData.error?.message || response.statusText}`);
-      }
-      
-      const data: OpenRouterResponse = await response.json();
-      return data.choices[0].message.content;
-    } catch (error) {
-      console.error('Error sending message to API:', error);
-      throw error;
-    }
+    
+    // Create an instance of OpenRouterClient with the API key
+    const client = new OpenRouterClient(apiKey);
+    
+    // Send the message using the client
+    return await client.sendChatRequest(messages, model, temperature, maxTokens);
   }
 
-  createEmptyChat(): Chat {
-    return {
-      id: uuidv4(),
-      title: 'New Chat',
-      messages: [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+  // Utility methods for chat and message management
+  createEmptyChat() {
+    return this.utils.createEmptyChat();
   }
 
-  createMessage(role: Message['role'], content: string, images?: string[]): Message {
-    return {
-      id: uuidv4(),
-      chat_id: '', // This will be set when added to a chat
-      role,
-      content,
-      created_at: new Date().toISOString(),
-      has_images: images && images.length > 0 ? true : false,
-      images
-    };
+  createMessage(role: Message['role'], content: string, images?: string[]) {
+    return this.utils.createMessage(role, content, images);
   }
 
   generateTitle(messages: Message[]): string {
-    if (messages.length === 0) return 'New Chat';
-    
-    const firstUserMessage = messages.find(msg => msg.role === 'user');
-    if (!firstUserMessage) return 'New Chat';
-    
-    const content = firstUserMessage.content;
-    if (content.length <= 30) return content;
-    
-    return content.substring(0, 27) + '...';
+    return this.utils.generateTitle(messages);
   }
 }
 
