@@ -6,6 +6,8 @@ import ReactMarkdown from "react-markdown";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Zap } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatMessageProps {
   message: Message;
@@ -13,6 +15,7 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
+  const isMobile = useIsMobile();
   
   return (
     <div className={cn(
@@ -42,7 +45,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
       </div>
       
       <div className={cn(
-        "flex-1 space-y-4 max-w-[80%]",
+        "flex-1 space-y-4",
+        isMobile ? "max-w-[90%]" : "max-w-[80%]",
         isUser ? "text-right" : "text-left"
       )}>
         <div className={cn(
@@ -57,15 +61,39 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 const match = /language-(\w+)/.exec(className || '');
                 
                 return match ? (
-                  <SyntaxHighlighter
-                    language={match[1]}
-                    style={atomDark as any}
-                    PreTag="div"
-                  >
-                    {String(children).replace(/\n$/, '')}
-                  </SyntaxHighlighter>
+                  <div className="relative overflow-hidden rounded-md">
+                    <ScrollArea className={cn(
+                      "w-full overflow-auto",
+                      isMobile ? "max-w-[calc(100vw-8rem)]" : ""
+                    )}>
+                      <SyntaxHighlighter
+                        language={match[1]}
+                        style={atomDark as any}
+                        PreTag="div"
+                        customStyle={{
+                          margin: 0,
+                          borderRadius: '0.375rem',
+                          padding: '1rem',
+                          fontSize: isMobile ? '0.8rem' : '0.9rem',
+                        }}
+                        codeTagProps={{
+                          style: {
+                            fontFamily: 'monospace',
+                            whiteSpace: 'pre',
+                          }
+                        }}
+                      >
+                        {String(children).replace(/\n$/, '')}
+                      </SyntaxHighlighter>
+                    </ScrollArea>
+                    {isMobile && (
+                      <div className="absolute bottom-1 right-2 text-[10px] text-gray-400 bg-black/50 px-1 rounded">
+                        swipe to scroll →
+                      </div>
+                    )}
+                  </div>
                 ) : (
-                  <code className={cn("bg-secondary/60 px-1 py-0.5 rounded", className)}>
+                  <code className={cn("bg-secondary/60 px-1 py-0.5 rounded break-words", className)}>
                     {children}
                   </code>
                 );
@@ -75,6 +103,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   <a className="text-primary underline" target="_blank" rel="noopener noreferrer" {...props}>
                     {children}
                   </a>
+                );
+              },
+              p({ children }) {
+                return (
+                  <p className="whitespace-pre-wrap break-words">
+                    {children}
+                  </p>
                 );
               }
             }}
