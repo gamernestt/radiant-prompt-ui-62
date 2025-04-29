@@ -21,15 +21,6 @@ export function ModelSelector() {
   const { activeModel, setActiveModel, availableModels } = useChat();
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
-  
-  // Group models by provider
-  const modelsByProvider = availableModels.reduce((acc, model) => {
-    if (!acc[model.provider]) {
-      acc[model.provider] = [];
-    }
-    acc[model.provider].push(model);
-    return acc;
-  }, {} as Record<string, typeof availableModels>);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -91,33 +82,28 @@ export function ModelSelector() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[260px] max-h-[60vh] overflow-y-auto">
-        {Object.keys(modelsByProvider).map((provider) => (
-          <div key={provider}>
-            <DropdownMenuLabel>{provider}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              {modelsByProvider[provider].map((model) => (
-                <DropdownMenuItem
-                  key={model.id}
-                  onClick={() => handleModelChange(model)}
-                  disabled={!isAdmin}
-                  className={cn(
-                    "flex items-center justify-between cursor-pointer rounded-md py-2",
-                    model.id === activeModel.id && "bg-secondary",
-                    !isAdmin && "opacity-60 cursor-not-allowed"
-                  )}
-                >
-                  <div className="flex flex-col">
-                    <span className="font-medium">{model.name}</span>
-                    <span className="text-xs text-muted-foreground">{model.id}</span>
-                  </div>
-                  {model.id === activeModel.id && <CheckIcon className="h-4 w-4" />}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-          </div>
-        ))}
+        <DropdownMenuLabel>OpenAI Models</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          {availableModels.map((model) => (
+            <DropdownMenuItem
+              key={model.id}
+              onClick={() => handleModelChange(model)}
+              disabled={!isAdmin}
+              className={cn(
+                "flex items-center justify-between cursor-pointer rounded-md py-2",
+                model.id === activeModel.id && "bg-secondary",
+                !isAdmin && "opacity-60 cursor-not-allowed"
+              )}
+            >
+              <div className="flex flex-col">
+                <span className="font-medium">{model.name}</span>
+                <span className="text-xs text-muted-foreground">{model.id}</span>
+              </div>
+              {model.id === activeModel.id && <CheckIcon className="h-4 w-4" />}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
         {!isAdmin && (
           <div className="px-2 py-1.5 text-xs text-muted-foreground">
             Only admins can change models

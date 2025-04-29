@@ -2,32 +2,19 @@
 import { useState, useEffect } from "react";
 import { useChat } from "@/contexts/chat-context";
 import { TabsContent } from "@/components/ui/tabs";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProviderApiSection } from "../provider-api-section";
 import { getProviderDisplayName } from "./api-keys-tab";
+import { Alert } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 interface BaseUrlsTabProps {
   active: boolean;
 }
 
 export function BaseUrlsTab({ active }: BaseUrlsTabProps) {
-  const { getAllBaseUrls, availableModels } = useChat();
+  const { getAllBaseUrls } = useChat();
   const [baseUrlValues, setBaseUrlValues] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState("openrouter");
   
-  // Group models by provider
-  const modelsByProvider = availableModels.reduce((acc, model) => {
-    const provider = model.provider.toLowerCase();
-    if (!acc[provider]) {
-      acc[provider] = [];
-    }
-    acc[provider].push(model);
-    return acc;
-  }, {} as Record<string, typeof availableModels>);
-  
-  // Get unique provider names for tabs
-  const providerNames = Object.keys(modelsByProvider);
-
   useEffect(() => {
     // Load existing base URLs
     const initialBaseUrls = getAllBaseUrls ? getAllBaseUrls() : {};
@@ -40,26 +27,24 @@ export function BaseUrlsTab({ active }: BaseUrlsTabProps) {
 
   return (
     <TabsContent value="baseurls" className="space-y-4">
-      <Tabs defaultValue="openrouter" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full flex flex-wrap">
-          {providerNames.map((provider) => (
-            <TabsTrigger key={provider} value={provider} className="flex-1 min-w-24">
-              {getProviderDisplayName(provider)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {providerNames.map((provider) => (
-          <ProviderApiSection 
-            key={provider}
-            provider={provider}
-            value={baseUrlValues[provider] || ''}
-            onChange={(value) => handleBaseUrlChange(provider, value)}
-            type="baseurl"
-            active={activeTab === provider}
-          />
-        ))}
-      </Tabs>
+      <Alert className="bg-primary/10 border-primary mb-4">
+        <div className="flex items-start gap-2">
+          <Info className="h-4 w-4 mt-0.5" />
+          <div>
+            <p className="font-medium">OpenAI Base URL</p>
+            <p className="text-sm">The OpenAI Base URL is fixed to "https://openrouter.ai/api/v1"</p>
+          </div>
+        </div>
+      </Alert>
+      
+      <ProviderApiSection 
+        provider="openai"
+        value="https://openrouter.ai/api/v1"
+        onChange={(value) => handleBaseUrlChange("openai", value)}
+        type="baseurl"
+        active={true}
+        readonly={true}
+      />
     </TabsContent>
   );
 }

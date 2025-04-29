@@ -22,7 +22,8 @@ export class ChatService {
     
     // Initialize base URLs with the default
     this.baseUrls = {
-      'openrouter': this.defaultBaseUrl
+      'openrouter': this.defaultBaseUrl,
+      'openai': 'https://openrouter.ai/api/v1'  // Set OpenAI base URL to OpenRouter
     };
     
     // Try to load saved API keys and base URLs from localStorage
@@ -84,7 +85,12 @@ export class ChatService {
   }
   
   setBaseUrl(url: string, provider: string = 'openrouter') {
-    this.baseUrls[provider] = url || this.defaultBaseUrl;
+    // For OpenAI, always set to OpenRouter URL
+    if (provider.toLowerCase() === 'openai') {
+      this.baseUrls[provider] = this.defaultBaseUrl;
+    } else {
+      this.baseUrls[provider] = url || this.defaultBaseUrl;
+    }
     this.saveBaseUrls();
   }
 

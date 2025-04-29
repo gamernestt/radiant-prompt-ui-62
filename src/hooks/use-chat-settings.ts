@@ -1,12 +1,33 @@
-
 import { useState, useEffect } from "react";
 import { chatService } from "@/services/chat-service";
 import { AIModels, defaultModels } from "@/types/chat";
 import { useToast } from "@/hooks/use-toast";
 
+// Filter only OpenAI models
+const openaiModels: AIModels[] = [
+  {
+    id: "openai/gpt-4o",
+    name: "GPT-4o",
+    provider: "OpenAI",
+    description: "Most capable model for complex tasks"
+  },
+  {
+    id: "openai/gpt-4o-mini",
+    name: "GPT-4o Mini",
+    provider: "OpenAI",
+    description: "Smaller and faster version of GPT-4o"
+  },
+  {
+    id: "openai/gpt-3.5-turbo",
+    name: "GPT-3.5 Turbo",
+    provider: "OpenAI",
+    description: "Fast and cost-effective model"
+  }
+];
+
 export const useChatSettings = () => {
-  const [availableModels, setAvailableModels] = useState<AIModels[]>(defaultModels);
-  const [activeModel, setActiveModelState] = useState<AIModels>(defaultModels[0]);
+  const [availableModels, setAvailableModels] = useState<AIModels[]>(openaiModels);
+  const [activeModel, setActiveModelState] = useState<AIModels>(openaiModels[0]);
   const { toast } = useToast();
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
   const [baseUrls, setBaseUrls] = useState<Record<string, string>>({});
@@ -16,7 +37,16 @@ export const useChatSettings = () => {
     if (savedModel) {
       try {
         const model = JSON.parse(savedModel);
-        setActiveModelState(model);
+        // Check if the saved model is still in our filtered list
+        const isOpenAIModel = openaiModels.some(m => m.id === model.id);
+        
+        if (isOpenAIModel) {
+          setActiveModelState(model);
+        } else {
+          // If the saved model isn't in our filtered list, use the first OpenAI model
+          setActiveModelState(openaiModels[0]);
+          localStorage.setItem("activeModel", JSON.stringify(openaiModels[0]));
+        }
       } catch (error) {
         console.error("Failed to parse saved model:", error);
       }
@@ -30,12 +60,22 @@ export const useChatSettings = () => {
     const urls = chatService.getAllBaseUrls();
     setBaseUrls(urls);
 
-    // Load custom models list
+    // Load custom models list, but filter for only OpenAI models
     const savedModels = localStorage.getItem("availableModels");
     if (savedModels) {
       try {
         const models = JSON.parse(savedModels);
-        setAvailableModels(models);
+        const filteredModels = models.filter((model: AIModels) => 
+          model.provider.toLowerCase() === 'openai'
+        );
+        
+        // If we have filtered models, use them, otherwise use default OpenAI models
+        if (filteredModels.length > 0) {
+          setAvailableModels(filteredModels);
+        } else {
+          setAvailableModels(openaiModels);
+          localStorage.setItem("availableModels", JSON.stringify(openaiModels));
+        }
       } catch (error) {
         console.error("Failed to parse saved models:", error);
       }
@@ -118,6 +158,16 @@ export const useChatSettings = () => {
       toast({
         title: "Model already exists",
         description: "A model with this ID already exists in your list.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Only allow adding OpenAI models
+    if (model.provider.toLowerCase() !== 'openai') {
+      toast({
+        title: "Invalid model provider",
+        description: "Only OpenAI models are allowed.",
         variant: "destructive",
       });
       return;
