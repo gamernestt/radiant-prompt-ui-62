@@ -69,6 +69,15 @@ export function ModelSelector() {
     });
   };
 
+  // Group models by provider
+  const openaiModels = availableModels.filter(model => 
+    model.provider.toLowerCase() === 'openai'
+  );
+  
+  const deepseekModels = availableModels.filter(model => 
+    model.provider.toLowerCase() === 'deepseek'
+  );
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -82,28 +91,60 @@ export function ModelSelector() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[260px] max-h-[60vh] overflow-y-auto">
-        <DropdownMenuLabel>OpenAI Models</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          {availableModels.map((model) => (
-            <DropdownMenuItem
-              key={model.id}
-              onClick={() => handleModelChange(model)}
-              disabled={!isAdmin}
-              className={cn(
-                "flex items-center justify-between cursor-pointer rounded-md py-2",
-                model.id === activeModel.id && "bg-secondary",
-                !isAdmin && "opacity-60 cursor-not-allowed"
-              )}
-            >
-              <div className="flex flex-col">
-                <span className="font-medium">{model.name}</span>
-                <span className="text-xs text-muted-foreground">{model.id}</span>
-              </div>
-              {model.id === activeModel.id && <CheckIcon className="h-4 w-4" />}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuGroup>
+        {openaiModels.length > 0 && (
+          <>
+            <DropdownMenuLabel>OpenAI Models</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              {openaiModels.map((model) => (
+                <DropdownMenuItem
+                  key={model.id}
+                  onClick={() => handleModelChange(model)}
+                  disabled={!isAdmin}
+                  className={cn(
+                    "flex items-center justify-between cursor-pointer rounded-md py-2",
+                    model.id === activeModel.id && "bg-secondary",
+                    !isAdmin && "opacity-60 cursor-not-allowed"
+                  )}
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium">{model.name}</span>
+                    <span className="text-xs text-muted-foreground">{model.id}</span>
+                  </div>
+                  {model.id === activeModel.id && <CheckIcon className="h-4 w-4" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+          </>
+        )}
+        
+        {deepseekModels.length > 0 && (
+          <>
+            <DropdownMenuLabel>Deepseek Models</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              {deepseekModels.map((model) => (
+                <DropdownMenuItem
+                  key={model.id}
+                  onClick={() => handleModelChange(model)}
+                  disabled={!isAdmin}
+                  className={cn(
+                    "flex items-center justify-between cursor-pointer rounded-md py-2",
+                    model.id === activeModel.id && "bg-secondary",
+                    !isAdmin && "opacity-60 cursor-not-allowed"
+                  )}
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium">{model.name}</span>
+                    <span className="text-xs text-muted-foreground">{model.id}</span>
+                  </div>
+                  {model.id === activeModel.id && <CheckIcon className="h-4 w-4" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+          </>
+        )}
+        
         {!isAdmin && (
           <div className="px-2 py-1.5 text-xs text-muted-foreground">
             Only admins can change models

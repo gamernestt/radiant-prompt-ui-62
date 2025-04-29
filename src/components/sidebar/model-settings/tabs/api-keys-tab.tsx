@@ -32,6 +32,14 @@ export function ApiKeysTab({ active }: ApiKeysTabProps) {
         type="apikey"
         active={true}
       />
+      <ProviderApiSection 
+        key="deepseek"
+        provider="deepseek"
+        value={apiKeyValues["deepseek"] || ''}
+        onChange={(value) => handleApiKeyChange("deepseek", value)}
+        type="apikey"
+        active={true}
+      />
     </TabsContent>
   );
 }
@@ -40,6 +48,8 @@ export function getProviderDisplayName(provider: string): string {
   switch (provider.toLowerCase()) {
     case 'openai':
       return 'OpenAI';
+    case 'deepseek':
+      return 'Deepseek';
     default:
       return provider.charAt(0).toUpperCase() + provider.slice(1);
   }

@@ -31,8 +31,8 @@ export function BaseUrlsTab({ active }: BaseUrlsTabProps) {
         <div className="flex items-start gap-2">
           <Info className="h-4 w-4 mt-0.5" />
           <div>
-            <p className="font-medium">OpenAI Base URL</p>
-            <p className="text-sm">The OpenAI Base URL is fixed to "https://openrouter.ai/api/v1"</p>
+            <p className="font-medium">API Base URLs</p>
+            <p className="text-sm">All providers are using OpenRouter API: "https://openrouter.ai/api/v1"</p>
           </div>
         </div>
       </Alert>
@@ -41,6 +41,15 @@ export function BaseUrlsTab({ active }: BaseUrlsTabProps) {
         provider="openai"
         value="https://openrouter.ai/api/v1"
         onChange={(value) => handleBaseUrlChange("openai", value)}
+        type="baseurl"
+        active={true}
+        readonly={true}
+      />
+      
+      <ProviderApiSection 
+        provider="deepseek"
+        value="https://openrouter.ai/api/v1"
+        onChange={(value) => handleBaseUrlChange("deepseek", value)}
         type="baseurl"
         active={true}
         readonly={true}

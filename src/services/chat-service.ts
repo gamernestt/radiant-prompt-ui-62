@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { 
   Message, 
@@ -23,7 +22,8 @@ export class ChatService {
     // Initialize base URLs with the default
     this.baseUrls = {
       'openrouter': this.defaultBaseUrl,
-      'openai': 'https://openrouter.ai/api/v1'  // Set OpenAI base URL to OpenRouter
+      'openai': this.defaultBaseUrl,
+      'deepseek': this.defaultBaseUrl
     };
     
     // Try to load saved API keys and base URLs from localStorage
@@ -71,12 +71,12 @@ export class ChatService {
     }
   }
 
-  setApiKey(key: string, provider: string = 'openrouter') {
+  setApiKey(key: string, provider: string = 'openai') {
     this.apiKeys[provider] = key;
     this.saveApiKeys();
   }
 
-  getApiKey(provider: string = 'openrouter'): string {
+  getApiKey(provider: string = 'openai'): string {
     return this.apiKeys[provider] || '';
   }
   
@@ -84,17 +84,13 @@ export class ChatService {
     return {...this.apiKeys};
   }
   
-  setBaseUrl(url: string, provider: string = 'openrouter') {
-    // For OpenAI, always set to OpenRouter URL
-    if (provider.toLowerCase() === 'openai') {
-      this.baseUrls[provider] = this.defaultBaseUrl;
-    } else {
-      this.baseUrls[provider] = url || this.defaultBaseUrl;
-    }
+  setBaseUrl(url: string, provider: string = 'openai') {
+    // Always set to OpenRouter URL for all providers
+    this.baseUrls[provider] = this.defaultBaseUrl;
     this.saveBaseUrls();
   }
 
-  getBaseUrl(provider: string = 'openrouter'): string {
+  getBaseUrl(provider: string = 'openai'): string {
     return this.baseUrls[provider] || this.defaultBaseUrl;
   }
   
@@ -111,13 +107,14 @@ export class ChatService {
     // Get the provider from the model string (e.g., 'openai/gpt-4o' -> 'openai')
     const provider = model.split('/')[0].toLowerCase();
     
+    // Get the API key for the specific provider or fall back to OpenRouter
     const apiKey = this.getApiKey(provider) || this.getApiKey('openrouter');
     if (!apiKey) {
-      throw new Error('API key not set');
+      throw new Error(`API key not set for ${provider}`);
     }
     
-    // Get the appropriate base URL for the provider or fall back to the default
-    const baseUrl = this.getBaseUrl(provider) || this.getBaseUrl('openrouter');
+    // Always use OpenRouter base URL
+    const baseUrl = this.defaultBaseUrl;
 
     const openRouterMessages: OpenRouterMessage[] = messages.map(message => {
       // Handle messages with images

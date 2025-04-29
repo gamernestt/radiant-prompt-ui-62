@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface AddModelFormProps {
   isAdmin: boolean;
@@ -18,6 +19,7 @@ export function AddModelForm({ isAdmin }: AddModelFormProps) {
   const [modelName, setModelName] = useState("");
   const [modelId, setModelId] = useState("");
   const [modelDescription, setModelDescription] = useState("");
+  const [provider, setProvider] = useState("openai");
   
   const handleAddModel = () => {
     if (!modelName.trim() || !modelId.trim()) {
@@ -29,26 +31,45 @@ export function AddModelForm({ isAdmin }: AddModelFormProps) {
       return;
     }
     
-    // Make sure it's an OpenAI model
-    if (!modelId.toLowerCase().startsWith("openai/")) {
+    // Make sure it's using correct prefix based on selected provider
+    const lowercaseModelId = modelId.toLowerCase();
+    const expectedPrefix = provider.toLowerCase() + "/";
+    
+    if (!lowercaseModelId.startsWith(expectedPrefix)) {
+      const correctedModelId = expectedPrefix + (lowercaseModelId.startsWith(expectedPrefix) ? 
+        lowercaseModelId.substring(expectedPrefix.length) : 
+        lowercaseModelId);
+      
       toast({
-        title: "Invalid model ID",
-        description: "Only OpenAI models are allowed. Model ID must start with 'openai/'",
-        variant: "destructive",
+        title: "Model ID corrected",
+        description: `Model ID should start with "${expectedPrefix}". Corrected to "${correctedModelId}"`,
       });
-      return;
+      
+      // Update the model ID with the corrected version
+      setModelId(correctedModelId);
+      
+      // Create the model object with corrected ID
+      const newModel = {
+        id: correctedModelId,
+        name: modelName,
+        provider: provider === 'openai' ? 'OpenAI' : 'Deepseek',
+        description: modelDescription
+      };
+      
+      // Add the model
+      addModel(newModel);
+    } else {
+      // Create the model object
+      const newModel = {
+        id: modelId,
+        name: modelName,
+        provider: provider === 'openai' ? 'OpenAI' : 'Deepseek',
+        description: modelDescription
+      };
+      
+      // Add the model
+      addModel(newModel);
     }
-    
-    // Create the model object
-    const newModel = {
-      id: modelId,
-      name: modelName,
-      provider: "OpenAI", // Always set to OpenAI
-      description: modelDescription
-    };
-    
-    // Add the model
-    addModel(newModel);
     
     // Reset form
     setModelName("");
@@ -68,7 +89,7 @@ export function AddModelForm({ isAdmin }: AddModelFormProps) {
           onClick={() => setIsAdding(true)}
         >
           <PlusCircle className="h-4 w-4" />
-          Add OpenAI Model
+          Add Model
         </Button>
       </div>
     );
@@ -76,8 +97,21 @@ export function AddModelForm({ isAdmin }: AddModelFormProps) {
   
   return (
     <div className="border p-4 rounded-md mt-4 bg-secondary/20">
-      <h3 className="font-medium mb-2">Add OpenAI Model</h3>
+      <h3 className="font-medium mb-2">Add New Model</h3>
       <div className="space-y-3">
+        <div>
+          <Label htmlFor="provider-select">Provider</Label>
+          <Select value={provider} onValueChange={setProvider}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select provider" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="openai">OpenAI</SelectItem>
+              <SelectItem value="deepseek">Deepseek</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
         <div>
           <Label htmlFor="model-name">Model Name</Label>
           <Input 
@@ -94,10 +128,10 @@ export function AddModelForm({ isAdmin }: AddModelFormProps) {
             id="model-id"
             value={modelId}
             onChange={(e) => setModelId(e.target.value)}
-            placeholder="openai/gpt-4o-turbo"
+            placeholder={provider === 'openai' ? "openai/gpt-4o-turbo" : "deepseek/model-name"}
           />
           <p className="text-xs text-muted-foreground mt-1">
-            Must start with "openai/" - only OpenAI models are allowed
+            Must start with "{provider}/" - only {provider === 'openai' ? 'OpenAI' : 'Deepseek'} models are allowed
           </p>
         </div>
         
@@ -107,7 +141,7 @@ export function AddModelForm({ isAdmin }: AddModelFormProps) {
             id="model-description"
             value={modelDescription}
             onChange={(e) => setModelDescription(e.target.value)}
-            placeholder="Advanced OpenAI model"
+            placeholder="Advanced model"
           />
         </div>
         

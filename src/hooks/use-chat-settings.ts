@@ -3,8 +3,8 @@ import { chatService } from "@/services/chat-service";
 import { AIModels, defaultModels } from "@/types/chat";
 import { useToast } from "@/hooks/use-toast";
 
-// Filter only OpenAI models
-const openaiModels: AIModels[] = [
+// Filter only OpenAI and Deepseek models
+const filteredModels: AIModels[] = [
   {
     id: "openai/gpt-4o",
     name: "GPT-4o",
@@ -22,12 +22,18 @@ const openaiModels: AIModels[] = [
     name: "GPT-3.5 Turbo",
     provider: "OpenAI",
     description: "Fast and cost-effective model"
+  },
+  {
+    id: "deepseek/deepseek-v2",
+    name: "Deepseek R1",
+    provider: "Deepseek",
+    description: "Latest model from Deepseek AI"
   }
 ];
 
 export const useChatSettings = () => {
-  const [availableModels, setAvailableModels] = useState<AIModels[]>(openaiModels);
-  const [activeModel, setActiveModelState] = useState<AIModels>(openaiModels[0]);
+  const [availableModels, setAvailableModels] = useState<AIModels[]>(filteredModels);
+  const [activeModel, setActiveModelState] = useState<AIModels>(filteredModels[0]);
   const { toast } = useToast();
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
   const [baseUrls, setBaseUrls] = useState<Record<string, string>>({});
@@ -38,14 +44,14 @@ export const useChatSettings = () => {
       try {
         const model = JSON.parse(savedModel);
         // Check if the saved model is still in our filtered list
-        const isOpenAIModel = openaiModels.some(m => m.id === model.id);
+        const isAllowedModel = filteredModels.some(m => m.id === model.id);
         
-        if (isOpenAIModel) {
+        if (isAllowedModel) {
           setActiveModelState(model);
         } else {
-          // If the saved model isn't in our filtered list, use the first OpenAI model
-          setActiveModelState(openaiModels[0]);
-          localStorage.setItem("activeModel", JSON.stringify(openaiModels[0]));
+          // If the saved model isn't in our filtered list, use the first model
+          setActiveModelState(filteredModels[0]);
+          localStorage.setItem("activeModel", JSON.stringify(filteredModels[0]));
         }
       } catch (error) {
         console.error("Failed to parse saved model:", error);
@@ -60,21 +66,21 @@ export const useChatSettings = () => {
     const urls = chatService.getAllBaseUrls();
     setBaseUrls(urls);
 
-    // Load custom models list, but filter for only OpenAI models
+    // Load custom models list, but filter for only allowed models
     const savedModels = localStorage.getItem("availableModels");
     if (savedModels) {
       try {
         const models = JSON.parse(savedModels);
-        const filteredModels = models.filter((model: AIModels) => 
-          model.provider.toLowerCase() === 'openai'
+        const allowedModels = models.filter((model: AIModels) => 
+          model.provider.toLowerCase() === 'openai' || model.provider.toLowerCase() === 'deepseek'
         );
         
-        // If we have filtered models, use them, otherwise use default OpenAI models
-        if (filteredModels.length > 0) {
-          setAvailableModels(filteredModels);
+        // If we have filtered models, use them, otherwise use default filtered models
+        if (allowedModels.length > 0) {
+          setAvailableModels(allowedModels);
         } else {
-          setAvailableModels(openaiModels);
-          localStorage.setItem("availableModels", JSON.stringify(openaiModels));
+          setAvailableModels(filteredModels);
+          localStorage.setItem("availableModels", JSON.stringify(filteredModels));
         }
       } catch (error) {
         console.error("Failed to parse saved models:", error);
@@ -90,7 +96,7 @@ export const useChatSettings = () => {
     localStorage.setItem("availableModels", JSON.stringify(availableModels));
   }, [availableModels]);
 
-  const setApiKey = (key: string, provider: string = 'openrouter') => {
+  const setApiKey = (key: string, provider: string = 'openai') => {
     chatService.setApiKey(key, provider);
     setApiKeys(chatService.getAllApiKeys());
     
@@ -100,21 +106,22 @@ export const useChatSettings = () => {
     });
   };
 
-  const setBaseUrl = (url: string, provider: string = 'openrouter') => {
-    chatService.setBaseUrl(url, provider);
+  const setBaseUrl = (url: string, provider: string = 'openai') => {
+    // Always set to OpenRouter URL
+    chatService.setBaseUrl("https://openrouter.ai/api/v1", provider);
     setBaseUrls(chatService.getAllBaseUrls());
     
     toast({
       title: `${provider.charAt(0).toUpperCase() + provider.slice(1)} Base URL Updated`,
-      description: `Your ${provider} base URL has been saved.`,
+      description: `Your ${provider} base URL has been saved to OpenRouter.`,
     });
   };
 
-  const getApiKey = (provider: string = 'openrouter') => {
+  const getApiKey = (provider: string = 'openai') => {
     return chatService.getApiKey(provider);
   };
 
-  const getBaseUrl = (provider: string = 'openrouter') => {
+  const getBaseUrl = (provider: string = 'openai') => {
     return chatService.getBaseUrl(provider);
   };
 
@@ -134,7 +141,7 @@ export const useChatSettings = () => {
     // Check if model is currently active
     if (activeModel.id === modelId) {
       // Set to first available model that's not being removed
-      const firstAvailableModel = availableModels.find(m => m.id !== modelId) || defaultModels[0];
+      const firstAvailableModel = availableModels.find(m => m.id !== modelId) || filteredModels[0];
       setActiveModelState(firstAvailableModel);
       toast({
         title: "Active Model Changed",
@@ -163,11 +170,11 @@ export const useChatSettings = () => {
       return;
     }
 
-    // Only allow adding OpenAI models
-    if (model.provider.toLowerCase() !== 'openai') {
+    // Only allow adding OpenAI or Deepseek models
+    if (model.provider.toLowerCase() !== 'openai' && model.provider.toLowerCase() !== 'deepseek') {
       toast({
         title: "Invalid model provider",
-        description: "Only OpenAI models are allowed.",
+        description: "Only OpenAI and Deepseek models are allowed.",
         variant: "destructive",
       });
       return;
