@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { 
   Message, 
@@ -16,7 +17,9 @@ export class ChatService {
   constructor(apiKey: string = '') {
     // Initialize with the legacy single API key format
     this.apiKeys = {
-      'openrouter': apiKey
+      'openrouter': apiKey,
+      'openai': '',
+      'deepseek': ''
     };
     
     // Initialize base URLs with the default
@@ -60,6 +63,8 @@ export class ChatService {
       console.error("Failed to load base URLs from localStorage:", error);
       // Ensure default URL is set
       this.baseUrls['openrouter'] = this.defaultBaseUrl;
+      this.baseUrls['openai'] = this.defaultBaseUrl;
+      this.baseUrls['deepseek'] = this.defaultBaseUrl;
     }
   }
 
@@ -107,10 +112,11 @@ export class ChatService {
     // Get the provider from the model string (e.g., 'openai/gpt-4o' -> 'openai')
     const provider = model.split('/')[0].toLowerCase();
     
-    // Get the API key for the specific provider or fall back to OpenRouter
-    const apiKey = this.getApiKey(provider) || this.getApiKey('openrouter');
+    // Get the API key for the specific provider 
+    const apiKey = this.getApiKey(provider);
+    
     if (!apiKey) {
-      throw new Error(`API key not set for ${provider}`);
+      throw new Error(`API key not set for ${provider}. Please set your API key in the settings.`);
     }
     
     // Always use OpenRouter base URL

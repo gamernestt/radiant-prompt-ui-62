@@ -9,7 +9,7 @@ interface ApiKeysTabProps {
 }
 
 export function ApiKeysTab({ active }: ApiKeysTabProps) {
-  const { getAllApiKeys } = useChat();
+  const { getAllApiKeys, setApiKey } = useChat();
   const [apiKeyValues, setApiKeyValues] = useState<Record<string, string>>({});
   
   useEffect(() => {
@@ -22,6 +22,10 @@ export function ApiKeysTab({ active }: ApiKeysTabProps) {
     setApiKeyValues(prev => ({...prev, [provider]: value}));
   };
 
+  const handleSaveApiKey = (provider: string, value: string) => {
+    setApiKey(value, provider);
+  };
+
   return (
     <TabsContent value="apikeys" className="space-y-4">
       <ProviderApiSection 
@@ -29,16 +33,18 @@ export function ApiKeysTab({ active }: ApiKeysTabProps) {
         provider="openai"
         value={apiKeyValues["openai"] || ''}
         onChange={(value) => handleApiKeyChange("openai", value)}
+        onSave={(value) => handleSaveApiKey("openai", value)}
         type="apikey"
-        active={true}
+        active={active}
       />
       <ProviderApiSection 
         key="deepseek"
         provider="deepseek"
         value={apiKeyValues["deepseek"] || ''}
         onChange={(value) => handleApiKeyChange("deepseek", value)}
+        onSave={(value) => handleSaveApiKey("deepseek", value)}
         type="apikey"
-        active={true}
+        active={active}
       />
     </TabsContent>
   );
