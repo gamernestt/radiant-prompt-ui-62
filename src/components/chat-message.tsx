@@ -1,13 +1,15 @@
-
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Message } from "@/types/chat";
 import ReactMarkdown from "react-markdown";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { Zap } from "lucide-react";
+import { ThumbsDown, ThumbsUp, Zap, Copy, Volume2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface ChatMessageProps {
   message: Message;
@@ -16,6 +18,58 @@ interface ChatMessageProps {
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
   const isMobile = useIsMobile();
+  const { toast } = useToast();
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const [feedback, setFeedback] = useState<'like' | 'dislike' | null>(null);
+  
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: "The code has been copied to your clipboard.",
+    });
+  };
+  
+  const handleFeedback = (type: 'like' | 'dislike') => {
+    setFeedback(type);
+    toast({
+      title: type === 'like' ? "Thank you for your feedback!" : "We'll improve our responses",
+      description: type === 'like' ? "We're glad this was helpful" : "Your feedback helps us do better"
+    });
+  };
+  
+  const speakMessage = async () => {
+    if ('speechSynthesis' in window) {
+      setAudioPlaying(true);
+      
+      // Create a new speech synthesis utterance
+      const utterance = new SpeechSynthesisUtterance(message.content);
+      
+      // Set properties
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      
+      // Add an event listener for when speech has finished
+      utterance.onend = () => {
+        setAudioPlaying(false);
+      };
+      
+      // Speak the text
+      window.speechSynthesis.speak(utterance);
+      
+      toast({
+        title: "Speaking message",
+        description: "The AI is now reading the message aloud."
+      });
+    } else {
+      toast({
+        title: "Speech synthesis not supported",
+        description: "Your browser doesn't support speech synthesis.",
+        variant: "destructive"
+      });
+    }
+  };
   
   return (
     <div className={cn(
@@ -57,11 +111,21 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}>
           <ReactMarkdown
             components={{
-              code({ className, children }) {
+              code({ className, children, node, ...props }) {
                 const match = /language-(\w+)/.exec(className || '');
                 
                 return match ? (
                   <div className="relative overflow-hidden rounded-md">
+                    <div className="absolute right-2 top-2 z-10">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-7 w-7 bg-secondary/60 rounded-sm hover:bg-secondary"
+                        onClick={() => copyToClipboard(String(children))}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                     <ScrollArea className={cn(
                       "w-full overflow-auto",
                       isMobile ? "max-w-[calc(100vw-8rem)]" : ""
@@ -117,6 +181,48 @@ export function ChatMessage({ message }: ChatMessageProps) {
             {message.content}
           </ReactMarkdown>
         </div>
+        
+        {!isUser && (
+          <div className="flex items-center gap-2 ml-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-7 w-7 rounded-full",
+                feedback === 'like' ? "bg-green-500/20 text-green-500" : ""
+              )}
+              onClick={() => handleFeedback('like')}
+              title="Like this response"
+            >
+              <ThumbsUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-7 w-7 rounded-full",
+                feedback === 'dislike' ? "bg-red-500/20 text-red-500" : ""
+              )}
+              onClick={() => handleFeedback('dislike')}
+              title="Dislike this response"
+            >
+              <ThumbsDown className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-7 w-7 rounded-full",
+                audioPlaying ? "bg-primary/20 text-primary animate-pulse" : ""
+              )}
+              onClick={speakMessage}
+              disabled={audioPlaying}
+              title="Listen to this response"
+            >
+              <Volume2 className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
