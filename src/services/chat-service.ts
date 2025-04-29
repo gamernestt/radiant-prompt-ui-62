@@ -113,7 +113,12 @@ export class ChatService {
     const provider = model.split('/')[0].toLowerCase();
     
     // Get the API key for the specific provider 
-    const apiKey = this.getApiKey(provider);
+    let apiKey = this.getApiKey(provider);
+    
+    // If no provider-specific key exists, fall back to OpenRouter key
+    if (!apiKey) {
+      apiKey = this.getApiKey('openrouter');
+    }
     
     if (!apiKey) {
       throw new Error(`API key not set for ${provider}. Please set your API key in the settings.`);
@@ -121,6 +126,8 @@ export class ChatService {
     
     // Always use OpenRouter base URL
     const baseUrl = this.defaultBaseUrl;
+    
+    console.log(`Sending message using model: ${model}`);
 
     const openRouterMessages: OpenRouterMessage[] = messages.map(message => {
       // Handle messages with images

@@ -153,7 +153,9 @@ export const useChatLogic = () => {
         } : chat)
       );
       
-      // Get response from AI service
+      console.log("Sending message with model:", activeModel.id);
+      
+      // Get response from AI service using the activeModel
       const assistantContent = await chatService.sendMessage(
         updatedMessages,
         activeModel.id

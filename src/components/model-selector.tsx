@@ -62,7 +62,12 @@ export function ModelSelector() {
       return;
     }
     
+    console.log("Setting active model to:", model);
     setActiveModel(model);
+    
+    // Save current model to localStorage to persist between sessions
+    localStorage.setItem("activeModel", JSON.stringify(model));
+    
     toast({
       title: "Model changed",
       description: `Now using ${model.name} by ${model.provider}`,
